@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Callgraph Studio — Help</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:#07090f;--bg2:#0d1117;--bg3:#111820;--bg4:#161e2c;
+  --border:#1e2a3a;--border2:#263348;
+  --text:#dce8f8;--text2:#7a95b8;--text3:#3d5270;
+  --accent:#4a8fff;--gold:#d4a843;
+  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;
+}
+
+html,body{min-height:100%;font-family:"Inter",sans-serif;font-size:14px;background:var(--bg);color:var(--text);line-height:1.7}
+
+/* Layout */
+.page{max-width:860px;margin:0 auto;padding:2rem 1.5rem 4rem}
+
+/* Header */
+.hdr{text-align:center;padding:2.5rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2.5rem}
+.hdr-ar{font-size:1.6rem;font-family:"Scheherazade New","Noto Naskh Arabic",serif;
+  background:linear-gradient(135deg,#a07820,#d4a843,#f0c060,#d4a843,#a07820);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hdr-title{font-family:"Cinzel",serif;font-size:1.5rem;font-weight:600;color:var(--text);margin:.5rem 0 .25rem;letter-spacing:.04em}
+.hdr-sub{font-size:.8rem;color:var(--text3);letter-spacing:.1em}
+.hdr-badge{display:inline-block;background:var(--accent)22;border:1px solid var(--accent)44;border-radius:20px;padding:.2rem .75rem;font-size:.7rem;color:var(--accent);margin-top:.75rem;font-family:"JetBrains Mono",monospace}
+
+/* Nav */
+.nav{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:2.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+.nav a{color:var(--text3);text-decoration:none;font-size:.75rem;padding:.3rem .7rem;border-radius:5px;border:1px solid transparent;transition:all .15s}
+.nav a:hover{color:var(--accent);border-color:var(--border2)}
+
+/* Sections */
+h2{font-family:"Cinzel",serif;font-size:1rem;font-weight:600;color:var(--accent);letter-spacing:.06em;
+   text-transform:uppercase;margin:2.5rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+h3{font-size:.85rem;font-weight:600;color:var(--text);margin:1.5rem 0 .6rem}
+p{color:var(--text2);margin-bottom:.8rem;font-size:.875rem}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Code blocks */
+pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1rem 1.2rem;
+    overflow-x:auto;margin:.75rem 0 1rem;font-family:"JetBrains Mono",monospace;font-size:.75rem;
+    color:var(--text2);line-height:1.6}
+code{font-family:"JetBrains Mono",monospace;font-size:.8rem;color:var(--accent);
+     background:var(--bg3);padding:.1rem .35rem;border-radius:3px}
+pre code{background:none;padding:0;color:inherit}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;margin:.75rem 0 1.25rem;font-size:.82rem}
+th{text-align:left;color:var(--text3);font-weight:500;padding:.5rem .75rem;border-bottom:1px solid var(--border2);letter-spacing:.05em;font-size:.72rem;text-transform:uppercase}
+td{padding:.5rem .75rem;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:top}
+td:first-child{color:var(--accent);font-family:"JetBrains Mono",monospace;font-size:.78rem;white-space:nowrap}
+tr:last-child td{border:none}
+tr:hover td{background:var(--bg2)}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.25rem 1.5rem;margin:.75rem 0}
+.card-title{font-size:.72rem;font-weight:600;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.6rem}
+
+/* Shortcut grid */
+.kb-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.kb-item{display:flex;align-items:center;gap:.75rem;background:var(--bg3);border-radius:6px;padding:.45rem .75rem}
+.kb-key{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--text);background:var(--bg4);
+        border:1px solid var(--border2);border-radius:4px;padding:.15rem .45rem;white-space:nowrap;flex-shrink:0}
+.kb-desc{font-size:.75rem;color:var(--text2)}
+
+/* Alert */
+.note{background:var(--accent)0d;border:1px solid var(--accent)33;border-radius:7px;padding:.75rem 1rem;
+      margin:.75rem 0;font-size:.82rem;color:var(--text2)}
+.note b{color:var(--accent)}
+.warn{background:#f59e0b0d;border-color:#f59e0b33}
+.warn b{color:#f59e0b}
+
+/* Step list */
+ol{padding-left:1.4rem;color:var(--text2);font-size:.875rem}
+ol li{margin-bottom:.4rem;padding-left:.3rem}
+ol li strong{color:var(--text)}
+ul{padding-left:1.4rem;color:var(--text2);font-size:.875rem}
+ul li{margin-bottom:.3rem}
+
+/* Footer */
+.footer{text-align:center;margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);
+        font-size:.7rem;color:var(--text3);letter-spacing:.06em}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="hdr">
+  <div class="hdr-ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+  <div class="hdr-title">✦ Callgraph Studio</div>
+  <div class="hdr-sub">FAQ · CHEAT SHEET · HOW-TO · TROUBLESHOOTING</div>
+  <span class="hdr-badge">v1.0.0</span>
+</div>
+
+<nav class="nav">
+  <a href="#cheatsheet">Cheat Sheet</a>
+  <a href="#start">Getting Started</a>
+  <a href="#faq">FAQ</a>
+  <a href="#howto">How-To</a>
+  <a href="#graph">Understanding the Graph</a>
+  <a href="#analysis">Analysis Tools</a>
+  <a href="#troubleshoot">Troubleshooting</a>
+</nav>
+
+<!-- ══ CHEAT SHEET ══════════════════════════════════════════ -->
+<h2 id="cheatsheet">⌨ Quick Cheat Sheet</h2>
+
+<div class="kb-grid">
+  <div class="kb-item"><span class="kb-key">F</span><span class="kb-desc">Fit graph to window</span></div>
+  <div class="kb-item"><span class="kb-key">+ / −</span><span class="kb-desc">Zoom in / out</span></div>
+  <div class="kb-item"><span class="kb-key">M</span><span class="kb-desc">Toggle Function ↔ Module view</span></div>
+  <div class="kb-item"><span class="kb-key">Esc</span><span class="kb-desc">Clear trace, close panels</span></div>
+  <div class="kb-item"><span class="kb-key">Alt ←</span><span class="kb-desc">Back in trace history</span></div>
+  <div class="kb-item"><span class="kb-key">Alt →</span><span class="kb-desc">Forward in trace history</span></div>
+  <div class="kb-item"><span class="kb-key">↑ ↓</span><span class="kb-desc">Navigate autocomplete</span></div>
+  <div class="kb-item"><span class="kb-key">Enter</span><span class="kb-desc">Confirm autocomplete</span></div>
+</div>
+
+<h3>Mouse & Touch</h3>
+<table>
+  <tr><td>Drag</td><td>Pan the graph</td></tr>
+  <tr><td>Scroll wheel</td><td>Zoom in / out</td></tr>
+  <tr><td>Pinch (trackpad)</td><td>Zoom in / out</td></tr>
+  <tr><td>Click node</td><td>Trace that function</td></tr>
+  <tr><td>Click minimap</td><td>Jump to that area of the graph</td></tr>
+</table>
+
+<h3>Graph Bar Buttons</h3>
+<table>
+  <tr><td>◀ ▶</td><td>History back / forward</td></tr>
+  <tr><td>Fit</td><td>Fit graph to screen</td></tr>
+  <tr><td>⇆</td><td>Toggle Horizontal / Vertical layout</td></tr>
+  <tr><td>+ −</td><td>Zoom buttons</td></tr>
+  <tr><td>Ext</td><td>Show/hide external (library) functions</td></tr>
+  <tr><td>SVG</td><td>Export current view as vector SVG</td></tr>
+  <tr><td>PNG</td><td>Export current view as 2× PNG</td></tr>
+  <tr><td>✕ Trace</td><td>Clear trace, return to full graph</td></tr>
+</table>
+
+<!-- ══ GETTING STARTED ══════════════════════════════════════ -->
+<h2 id="start">◈ Getting Started</h2>
+
+<h3>1. Start the server</h3>
+<pre>./start.sh
+# Opens at: http://localhost:7411</pre>
+
+<h3>2. Index your project</h3>
+<ol>
+  <li>Enter the <strong>absolute path</strong> to your C source directory, or click <strong>Browse</strong></li>
+  <li>Click <strong>◈ Index Project</strong></li>
+  <li>Watch the progress bar — large projects index in 5–30 seconds</li>
+</ol>
+
+<div class="note"><b>Tip:</b> Your last indexed path is remembered. Next visit auto-fills the field.</div>
+
+<h3>3. Explore</h3>
+<ol>
+  <li>The <strong>function list</strong> (left sidebar) shows all functions ranked by call count</li>
+  <li>Click any function → <strong>trace mode</strong> shows its callers and callees</li>
+  <li>Or type in the <strong>Trace function</strong> box with autocomplete</li>
+  <li>Click any <strong>graph node</strong> to trace it</li>
+  <li>Use <strong>◀ ▶</strong> or <code>Alt+←/→</code> to navigate your trace history</li>
+</ol>
+
+<h3>4. Switch views</h3>
+<table>
+  <tr><td>ƒ Function</td><td>Individual function call graph with depth control</td></tr>
+  <tr><td>⬡ Module</td><td>Directory-level architectural overview</td></tr>
+  <tr><td>⊞ Expand</td><td>Functions grouped inside module bubbles</td></tr>
+  <tr><td>▦ Matrix</td><td>Module coupling heatmap — click cell to filter</td></tr>
+</table>
+
+<!-- ══ FAQ ══════════════════════════════════════════════════ -->
+<h2 id="faq">? FAQ</h2>
+
+<h3>What C projects does this work with?</h3>
+<p>Any C project parseable by <code>cflow</code>. Best suited for embedded firmware, RTOS code, drivers, and C libraries. C++ files (<code>.cpp</code>) are ignored.</p>
+
+<h3>How long does indexing take?</h3>
+<p>About 1 second per 10 source files. A 70-file project indexes in ~5 seconds. Results are cached in the browser for 24 hours — reopening the page restores your session instantly without re-indexing.</p>
+
+<h3>My graph has 500+ nodes and is slow.</h3>
+<p>Use the <strong>Depth</strong> slider to limit the graph to 2–4 levels. Or use <strong>Trace</strong> mode on a specific function — trace mode only renders the subgraph around one function, always fast.</p>
+
+<h3>Some functions are missing.</h3>
+<p><code>cflow</code> follows explicit function calls. Functions called only via <strong>function pointers</strong>, macros, or inline assembly may not appear. External library functions show as gray "external" nodes — hide them with <strong>Ext</strong>.</p>
+
+<h3>Can I save my graph?</h3>
+<p>Yes — three ways: (1) <strong>SVG / PNG</strong> export buttons save the current view, (2) the session auto-saves to <code>localStorage</code> and restores on next visit (24h TTL), (3) click <strong>✕ Session</strong> in the topbar to clear.</p>
+
+<h3>What does Re-index vs + New do?</h3>
+<table>
+  <tr><td>⟳ Re-index</td><td>Re-parses the same source directory (use after code changes)</td></tr>
+  <tr><td>＋ New</td><td>Clears everything and lets you index a different project</td></tr>
+</table>
+
+<h3>Is my source code sent anywhere?</h3>
+<p>No. Everything runs locally. The server runs on your machine, the browser connects to <code>localhost</code>. No analytics, no telemetry, no external requests.</p>
+
+<h3>Can I run this on a remote server?</h3>
+<pre>ssh -L 7411:localhost:7411 user@server
+# Then open http://localhost:7411 in your local browser</pre>
+
+<!-- ══ HOW-TO ════════════════════════════════════════════════ -->
+<h2 id="howto">▶ How-To Guides</h2>
+
+<h3>Find dead code</h3>
+<ol>
+  <li>In <strong>Analysis</strong>, click <strong>☠ Dead code</strong></li>
+  <li>View unreachable functions with their source files</li>
+  <li>Click <strong>Show in graph</strong> → dead functions glow red, others dim</li>
+  <li>Click <strong>Export list</strong> → saves <code>.txt</code> file</li>
+</ol>
+<div class="note"><b>Auto-excluded entry points:</b> <code>main</code>, <code>ISR_*</code>, <code>irq_*</code>, <code>interrupt_*</code>, <code>handler_*</code>, <code>init_*</code>, <code>_init</code>, <code>startup</code> (case-insensitive)</div>
+
+<h3>Analyse change impact</h3>
+<ol>
+  <li>In <strong>Analysis</strong>, click <strong>⚡ Impact</strong></li>
+  <li>Enter changed function names (one per line or comma-separated)</li>
+  <li>Click <strong>⚡ Analyse impact</strong></li>
+  <li>See affected count per module</li>
+  <li>Click <strong>Show in graph</strong> → red = changed, orange = affected callers</li>
+</ol>
+
+<h3>Find a call path between two functions</h3>
+<ol>
+  <li>In <strong>Analysis</strong>, click <strong>⇢ Path find</strong></li>
+  <li>Enter <strong>From</strong> and <strong>To</strong> function names</li>
+  <li>Click <strong>⇢ Find paths</strong></li>
+  <li>Results appear ranked shortest-first — click any to render it as a step-numbered graph</li>
+</ol>
+<div class="note warn"><b>Tip:</b> If no path found, try swapping From/To. The functions may be in separate call trees.</div>
+
+<h3>Apply the complexity heatmap</h3>
+<ol>
+  <li>In <strong>Analysis</strong>, click <strong>🌡 Heatmap</strong></li>
+  <li>Review the top 10 riskiest functions</li>
+  <li>Click <strong>Apply to graph</strong> → nodes recolored green→yellow→red</li>
+  <li>Click any function name to trace it immediately</li>
+  <li>Click <strong>Clear</strong> to restore default colors</li>
+</ol>
+
+<h3>Compare two call trees</h3>
+<ol>
+  <li>In <strong>Intersection trace</strong>, enter Function A and Function B</li>
+  <li>Click <strong>⊕ Intersect</strong></li>
+  <li>Graph shows only shared callees: blue = A root, purple = B root, green = shared</li>
+</ol>
+
+<h3>Explore module architecture</h3>
+<ol>
+  <li>Click <strong>⬡ Module</strong></li>
+  <li>Circle diagram: nodes = modules (directories), edge thickness = call volume</li>
+  <li>Click a module node → jumps to Function view for that module</li>
+  <li>Click <strong>⊞ Expand</strong> → functions inside module bubbles, cross-module wires</li>
+  <li>Click <strong>▦ Matrix</strong> → hover cells for counts, click to filter</li>
+</ol>
+
+<h3>Export for documentation</h3>
+<ol>
+  <li>Set up the view you want (trace, heatmap, path, etc.)</li>
+  <li>Click <strong>SVG</strong> for vector — scales perfectly in Word, Notion, Confluence</li>
+  <li>Click <strong>PNG</strong> for raster — 2× resolution, dark background baked in</li>
+</ol>
+
+<!-- ══ UNDERSTANDING THE GRAPH ══════════════════════════════ -->
+<h2 id="graph">◈ Understanding the Graph</h2>
+
+<h3>Node colors</h3>
+<table>
+  <tr><th>Color</th><th>Meaning</th></tr>
+  <tr><td>Blue border</td><td>Project function — defined in your source</td></tr>
+  <tr><td>Dark gray border</td><td>External function — from library or system header</td></tr>
+  <tr><td>Gold border</td><td>Macro-defined function</td></tr>
+  <tr><td>White border</td><td>Currently focused / traced function</td></tr>
+  <tr><td>Red border</td><td>Caller of the traced function</td></tr>
+  <tr><td>Green border</td><td>Callee of the traced function</td></tr>
+</table>
+
+<h3>Edge colors (trace mode)</h3>
+<table>
+  <tr><th>Color</th><th>Meaning</th></tr>
+  <tr><td>Red →</td><td>Calls going OUT from the traced function</td></tr>
+  <tr><td>Green →</td><td>Calls coming IN to the traced function</td></tr>
+  <tr><td>Dark blue →</td><td>Other edges in the graph</td></tr>
+</table>
+
+<h3>The number badge (top-right corner of node)</h3>
+<p>Shows <strong>in-degree</strong> — how many other functions call this one. Higher = more central to the codebase. Functions with in-degree 0 and no matching entry-point pattern are candidates for dead code.</p>
+
+<h3>Depth slider</h3>
+<table>
+  <tr><td>∞ (0)</td><td>Show all reachable functions from all roots</td></tr>
+  <tr><td>1</td><td>Root functions + their direct children only</td></tr>
+  <tr><td>2–4</td><td>Recommended for large projects (&gt;100 functions)</td></tr>
+</table>
+
+<!-- ══ ANALYSIS TOOLS ════════════════════════════════════════ -->
+<h2 id="analysis">⚗ Analysis Tools Reference</h2>
+
+<div class="card">
+  <div class="card-title">☠ Dead Code Detector</div>
+  <p><strong>Algorithm:</strong> finds project functions where no project-level function calls them (in-degree from project = 0).</p>
+  <p><strong>Auto-excluded:</strong> <code>main</code>, <code>ISR_*</code>, <code>irq_*</code>, <code>interrupt_*</code>, <code>handler_*</code>, <code>init_*</code>, <code>_init</code>, <code>startup</code></p>
+  <p><strong>Limitation:</strong> functions called only via function pointers appear dead even if they are live.</p>
+</div>
+
+<div class="card">
+  <div class="card-title">⚡ Change Impact Analysis</div>
+  <p><strong>Algorithm:</strong> reverse BFS — starts at the changed functions and walks upward through all callers.</p>
+  <p><strong>Output:</strong> total affected count, breakdown by module, graph overlay (red = changed, orange = affected).</p>
+</div>
+
+<div class="card">
+  <div class="card-title">🌡 Complexity Heatmap</div>
+  <p><strong>Score formula:</strong> <code>(out_degree × 2) + in_degree + call_depth</code></p>
+  <p>Out-degree is weighted 2× because fan-out drives complexity more than fan-in. Call depth is computed via BFS from all root functions.</p>
+  <p><strong>Color scale:</strong> green (simple) → yellow (medium) → red (complex)</p>
+</div>
+
+<div class="card">
+  <div class="card-title">⇢ Call Path Finder</div>
+  <p><strong>Algorithm:</strong> DFS with backtracking. Limits: max 20 paths, max depth 12 hops.</p>
+  <p><strong>Output:</strong> paths sorted shortest-first, each rendered as a step-numbered graph on click.</p>
+</div>
+
+<div class="card">
+  <div class="card-title">⊕ Intersection Trace</div>
+  <p><strong>Algorithm:</strong> full descendant BFS for both functions, then set intersection.</p>
+  <p><strong>Output:</strong> shared subgraph — blue = root A, purple = root B, green = shared callees.</p>
+</div>
+
+<!-- ══ TROUBLESHOOTING ═══════════════════════════════════════ -->
+<h2 id="troubleshoot">⚠ Troubleshooting</h2>
+
+<table>
+  <tr><th>Symptom</th><th>Fix</th></tr>
+  <tr><td>"No functions found" after indexing</td><td>Verify the path contains <code>.c</code> files. Check <code>cflow</code> is installed.</td></tr>
+  <tr><td>Graph shows 0 edges</td><td>Install <code>cflow</code> v1.6+: <code>sudo apt install cflow</code></td></tr>
+  <tr><td>PNG export shows black image</td><td>Use SVG instead. PNG via canvas has browser-specific quirks.</td></tr>
+  <tr><td>Session not restored on reload</td><td>Enable cookies/localStorage in browser settings.</td></tr>
+  <tr><td>Port already in use</td><td><code>kill $(lsof -t -i:7411)</code> then <code>./start.sh</code></td></tr>
+  <tr><td>Nodes cut off at left edge</td><td>Click <strong>Fit</strong> — layout auto-centers on fit.</td></tr>
+  <tr><td>"cflow: command not found"</td><td><code>sudo apt install cflow</code></td></tr>
+  <tr><td>Graph freezes at 500+ nodes</td><td>Use Depth slider (2–3) or Trace mode on a specific function.</td></tr>
+  <tr><td>Functions called via pointer not shown</td><td>This is a cflow limitation — manual inspection needed for pointer-dispatch code.</td></tr>
+</table>
+
+<h3>Server won't start</h3>
+<pre># Check Flask
+python3 -c "import flask" || pip install flask
+
+# Check port
+lsof -i :7411
+
+# Check dependencies  
+which cflow ctags dot gawk</pre>
+
+<div class="footer">
+  ✦ Callgraph Studio v1.0.0 &nbsp;·&nbsp; Built for C &nbsp;·&nbsp; Runs locally &nbsp;·&nbsp; No telemetry
+  <br><br>
+  <a href="index.html">← Back to App</a>
+</div>
+
+</div>
+</body>
+</html>

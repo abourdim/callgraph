@@ -1,0 +1,74 @@
+feat: Callgraph Studio v1.0.0 — interactive C call graph explorer
+
+Initial public release of Callgraph Studio, a local web application
+for navigating and analysing C codebases through their call graph.
+
+## Core architecture
+- Flask backend: cflow + ctags → JSON graph, streamed via SSE
+- Single-file frontend: native SVG rendering, no JS framework
+- Zero external API calls — runs entirely on localhost
+
+## Graph views
+- Function view: full call graph with depth limiter
+- Trace mode: click any node → shows callers + callees in layered layout
+- Module view: directory-level architectural overview (circle layout)
+- Expand view: functions grouped inside module bubbles
+- Matrix view: module coupling heatmap (N×N grid, click to filter)
+- Intersection trace: render shared callees of two functions
+
+## Layout engine
+- Sugiyama-style hierarchical layout with manual role assignment
+- Trace mode guarantees: callers at col 0, focused at col 1, callees at col 2+
+- Vertical centering per column
+- LR (horizontal) and TB (vertical) modes with correct edge attachment points
+- Bezier curves connect right-edge → left-edge (LR) or bottom → top (TB)
+
+## Navigation
+- Back/Forward history stack with breadcrumb trail (Alt+← / Alt+→)
+- Pan (drag), scroll zoom, pinch-to-zoom (trackpad + touchscreen)
+- Minimap: live thumbnail bottom-right, click to jump
+- Search: filter function list + glow matching nodes in graph
+- Autocomplete in trace input with keyboard navigation
+
+## Analysis tools
+- ☠ Dead code detector: BFS from all roots, excludes ISR/init entry patterns
+- ⚡ Change impact: reverse BFS from changed functions through all callers
+- 🌡 Complexity heatmap: score = out×2 + in + depth, overlay on graph
+- ⇢ Path finder: DFS finds all call paths between two functions (max 20, depth 12)
+
+## Export & persistence
+- SVG export: vector, dark background, font-inlined
+- PNG export: 2× retina via data-URI (avoids canvas taint)
+- Session persistence: graph JSON → localStorage, 24h TTL, auto-restored on load
+
+## UX
+- Hover tooltips: full name, file path, in/out degree
+- Style themes: default, heat, green, purple, gold, minimal
+- Keyboard shortcuts: F fit, +/- zoom, M toggle mode, Escape clear, Alt+arrows history
+- H/V layout toggle
+- External function toggle (Ext button)
+- Progress streaming via SSE during indexing
+- Path restrictions: ALLOWED_PATHS env var for server security
+
+## Bug fixes included
+- Literal newlines inside JS regex and Blob strings (syntax errors)
+- clearTrace() now resets multiTraceMode (state leak)
+- renderGraph() now handles multiTraceMode (loop prevention)
+- newIndex() resets all analysis state and clears UI panel
+- runMultiTrace() no longer calls clearTrace() internally (infinite loop)
+- PNG export uses data-URI instead of blob URL (canvas taint fix)
+- Layout starts at MPAD=40 (nodes no longer clip at left edge)
+- Analysis overlays use 600ms timeout (was 300ms, too short for async render)
+- Edge connection points: right→left for LR, bottom→top for TB
+
+## Tested on
+- EVIC embedded firmware: 69 C files, 189 nodes, 298 edges, 8 modules
+- All analysis tools validated against mock graph with 14 automated tests
+- Node.js syntax check: 0 errors across 2008 lines of JS
+
+## Files
+- index.html   (2532 lines) — complete frontend
+- server.py    (584 lines)  — Flask backend
+- start.sh     (44 lines)   — launch script
+- README.md                 — setup, architecture, shortcuts
+- HELP.md                   — FAQ, how-to, cheat sheet, troubleshooting
