@@ -1,74 +1,377 @@
-feat: Callgraph Studio v1.0.0 — interactive C call graph explorer
+feat: Callgraph Studio v1.0.0
 
-Initial public release of Callgraph Studio, a local web application
-for navigating and analysing C codebases through their call graph.
+بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
 
-## Core architecture
-- Flask backend: cflow + ctags → JSON graph, streamed via SSE
-- Single-file frontend: native SVG rendering, no JS framework
-- Zero external API calls — runs entirely on localhost
+══════════════════════════════════════════════════════════════════
+SUMMARY
+══════════════════════════════════════════════════════════════════
 
-## Graph views
-- Function view: full call graph with depth limiter
-- Trace mode: click any node → shows callers + callees in layered layout
-- Module view: directory-level architectural overview (circle layout)
-- Expand view: functions grouped inside module bubbles
-- Matrix view: module coupling heatmap (N×N grid, click to filter)
-- Intersection trace: render shared callees of two functions
+Complete local web application for exploring and analysing C codebases
+through an interactive SVG call graph. Replaces the cflow+gawk+ctags
+pipeline with a pure-Python tree-sitter analyzer that extracts function
+calls, global variable dependencies, ISR/task classification, RTOS
+architecture (FreeRTOS + CMSIS-RTOS v2), and hardware peripheral
+register access from real embedded firmware. No cloud. No telemetry.
+No system dependencies beyond Python, Flask, and tree-sitter.
 
-## Layout engine
-- Sugiyama-style hierarchical layout with manual role assignment
-- Trace mode guarantees: callers at col 0, focused at col 1, callees at col 2+
-- Vertical centering per column
-- LR (horizontal) and TB (vertical) modes with correct edge attachment points
-- Bezier curves connect right-edge → left-edge (LR) or bottom → top (TB)
+Tested on two real projects — EVIC (69 files, 552 functions, 0.3 s)
+and HMI (206 files, 570 functions, 2.4 s). 64 / 64 automated tests
+passing across 7 test sections covering parser, analyzer, graph schema,
+cross-project consistency, and JS frontend logic.
 
-## Navigation
-- Back/Forward history stack with breadcrumb trail (Alt+← / Alt+→)
-- Pan (drag), scroll zoom, pinch-to-zoom (trackpad + touchscreen)
-- Minimap: live thumbnail bottom-right, click to jump
-- Search: filter function list + glow matching nodes in graph
-- Autocomplete in trace input with keyboard navigation
+══════════════════════════════════════════════════════════════════
+FILES
+══════════════════════════════════════════════════════════════════
 
-## Analysis tools
-- ☠ Dead code detector: BFS from all roots, excludes ISR/init entry patterns
-- ⚡ Change impact: reverse BFS from changed functions through all callers
-- 🌡 Complexity heatmap: score = out×2 + in + depth, overlay on graph
-- ⇢ Path finder: DFS finds all call paths between two functions (max 20, depth 12)
+  index.html       3 020 lines   Complete single-file frontend
+                                 SVG renderer · layout · all analysis UI
+  server.py          480 lines   Flask backend, SSE progress streaming
+  analyzer.py        648 lines   tree-sitter 7-pass C analyzer (new)
+  start.sh           321 lines   Interactive menu launcher (no auto-install)
+  README.md          170 lines   Documentation, Islamic theme
+  HELP.html          740 lines   Help · FAQ · cheat sheet · reference
 
-## Export & persistence
-- SVG export: vector, dark background, font-inlined
-- PNG export: 2× retina via data-URI (avoids canvas taint)
-- Session persistence: graph JSON → localStorage, 24h TTL, auto-restored on load
+══════════════════════════════════════════════════════════════════
+ANALYZER: TREE-SITTER 7-PASS ENGINE  (replaces cflow+gawk)
+══════════════════════════════════════════════════════════════════
 
-## UX
-- Hover tooltips: full name, file path, in/out degree
-- Style themes: default, heat, green, purple, gold, minimal
-- Keyboard shortcuts: F fit, +/- zoom, M toggle mode, Escape clear, Alt+arrows history
-- H/V layout toggle
-- External function toggle (Ext button)
-- Progress streaming via SSE during indexing
-- Path restrictions: ALLOWED_PATHS env var for server security
+  Old pipeline: cflow + gawk + ctags
+    - misses function pointers, struct dispatch, ifdef branches
+    - fragile text parsing
+    - system binary dependencies (cflow must be installed)
+    - no global variable tracking
+    - no ISR/race analysis
 
-## Bug fixes included
-- Literal newlines inside JS regex and Blob strings (syntax errors)
-- clearTrace() now resets multiTraceMode (state leak)
-- renderGraph() now handles multiTraceMode (loop prevention)
-- newIndex() resets all analysis state and clears UI panel
-- runMultiTrace() no longer calls clearTrace() internally (infinite loop)
-- PNG export uses data-URI instead of blob URL (canvas taint fix)
-- Layout starts at MPAD=40 (nodes no longer clip at left edge)
-- Analysis overlays use 600ms timeout (was 300ms, too short for async render)
-- Edge connection points: right→left for LR, bottom→top for TB
+  New pipeline: tree-sitter + tree-sitter-c (pip only, no system deps)
+    - AST-based, handles complex embedded C
+    - correct scope resolution (file-scope vs local)
+    - field access detection (GPIOA->ODR)
+    - identifier context: LHS vs RHS, inside loop body, etc.
 
-## Tested on
-- EVIC embedded firmware: 69 C files, 189 nodes, 298 edges, 8 modules
-- All analysis tools validated against mock graph with 14 automated tests
-- Node.js syntax check: 0 errors across 2008 lines of JS
+  Pass 1  Global collection
+          Scans all .c files for file-scope declarations.
+          Extracts: name · file · line · volatile · static · extern
 
-## Files
-- index.html   (2532 lines) — complete frontend
-- server.py    (584 lines)  — Flask backend
-- start.sh     (44 lines)   — launch script
-- README.md                 — setup, architecture, shortcuts
-- HELP.md                   — FAQ, how-to, cheat sheet, troubleshooting
+  Pass 2  Per-function body analysis
+          Walks AST of each function_definition node.
+          Collects: call_expression nodes → callees
+                    identifier nodes matching globals → reads
+                    assignment LHS / compound-assign / update_expression → writes
+                    field_expression base names → peripheral register access
+                    known RTOS API calls → kind + target argument
+                    critical section entry calls → has_critical flag
+                    delay calls inside for/while/do → delay_in_loop flag
+
+  Pass 3  Call graph construction
+          edges dict: caller → [callee, ...]
+          callers dict: callee → [caller, ...]
+          out_degree, in_degree per node
+
+  Pass 4  Global variable dependency map
+          For each global: { writers: [fn...], readers: [fn...], rw: [fn...] }
+
+  Pass 5  Race condition detection
+          Crosses ISR-named function write-sets with non-ISR access-sets
+          for each global variable. Checks for critical section entry.
+          Severity: HIGH (volatile, unprotected)
+                    MEDIUM (non-volatile, unprotected)
+                    LOW (has critical section)
+
+  Pass 6  RTOS architecture graph
+          44 FreeRTOS + CMSIS-RTOS v2 API patterns.
+          Extracts task function names, queue handles, mutex/semaphore
+          handles from call arguments. Builds per-task relationship map
+          and shared-object inventory.
+          Filters FreeRTOS internals: prv* prefix, NULL, struct field
+          access targets (thread_def->pthread).
+
+  Pass 7  Peripheral register map
+          Matches field_expression base names against PERIPHERAL_RE.
+          Distinguishes write (LHS of assignment), read (RHS), and
+          read-modify-write (compound assignment).
+
+══════════════════════════════════════════════════════════════════
+GRAPH VIEWS
+══════════════════════════════════════════════════════════════════
+
+  ƒ Function   Full call graph — depth slider (0=∞, 1–10),
+               trace mode, search/filter, style pills
+
+  ⬡ Module     Directory-level architecture — circle layout,
+               edge thickness proportional to coupling weight
+
+  ⊞ Expand     Functions grouped inside module bubbles with
+               cross-module wires visible simultaneously
+
+  ▦ Matrix     Module × module coupling heatmap grid —
+               click any cell to filter edges to that pair
+
+══════════════════════════════════════════════════════════════════
+ANALYSIS TOOLS
+══════════════════════════════════════════════════════════════════
+
+  ☠ Dead code
+    Algorithm: zero project-in-degree nodes
+    Excludes:  main · ISR_* · irq_* · *_irq · *_isr · interrupt_*
+               handler_* · init_* · _init · startup · reset_handler
+               _start · setup
+    Output:    graph overlay (red + dim others) + .txt export
+
+  ⚡ Change impact
+    Input:     paste changed function names (one per line or CSV)
+    Algorithm: reverse BFS upward through caller graph
+    Output:    total affected count · per-module breakdown
+               graph overlay (red = changed, orange = affected)
+    UI state:  ◁ Edit returns to input without losing results
+
+  🌡 Complexity heatmap
+    Score:     (out_degree × 2) + in_degree + call_depth
+    call_depth: BFS distance from nearest root function
+    Thresholds: green < 33% < yellow < 66% < red (of project max)
+    Output:    top-10 list + optional graph overlay
+
+  ⇢ Path finder
+    Algorithm: DFS with visited-set (cycle prevention)
+    Limits:    max depth 12 hops · max 20 paths returned
+    Sort:      shortest first
+    Output:    clickable path list → step-numbered graph render
+
+  ⊕ Intersection trace
+    Algorithm: full descendant BFS from both functions → set intersect
+    Output:    subgraph of shared callees only
+
+══════════════════════════════════════════════════════════════════
+EMBEDDED ANALYSIS PANELS  (new in this release)
+══════════════════════════════════════════════════════════════════
+
+  Globals panel  (graph bar — green)
+    - All file-scope variables: name · file · line · volatile flag
+    - Per-variable: write count · read count · RW count
+    - Per-function breakdown expandable per variable
+    - Click variable → highlights: writers red · readers green
+      RW purple · others dimmed in graph
+    - Buttons hidden when no globals in project
+
+  Races panel  (graph bar — red, shown only when races detected)
+    - Severity ranking: HIGH > MEDIUM > LOW
+    - HIGH:   volatile global, ISR writes, non-ISR accesses,
+              no critical section detected in non-ISR function
+    - MEDIUM: non-volatile global, same unprotected pattern
+    - LOW:    same pattern but critical section detected
+    - Click candidate → ISR node red · task node orange in graph
+    - ISR classification: 30+ name patterns covering prefixes,
+      STM32 peripheral patterns, ARM fault handlers, and suffixes
+
+  RTOS panel  (graph bar — purple, shown only when tasks detected)
+    - 44 FreeRTOS + CMSIS-RTOS v2 API names parsed
+    - Per task creator: creates · sends_to · recvs_from
+                        takes · gives · delays
+    - Shared objects: queues · mutexes · semaphores with user lists
+    - FreeRTOS internals filtered: prv* prefix, prvIdleTask,
+      thread_def->pthread struct access
+
+  Periph panel  (graph bar — gold, shown only when peripherals found)
+    - Detected via PERIPH->REGISTER field_expression patterns
+    - GPIO A–K · TIM 1–14 · USART/UART 1–6 · SPI 1–6 · I2C 1–3
+      DMA 1–2 · ADC · DAC · RCC · FLASH · PWR · SYSCFG · EXTI
+      NVIC · SCB · SysTick · CAN · USB · RTC · IWDG · WWDG
+      LTDC · SAI · QUADSPI · SDIO
+    - Write / Read / RW per function per peripheral
+    - Click peripheral → highlights all touching functions in graph
+
+  Topbar stats (displayed after index):
+    "{N} fns · {M} edges"
+    + "{R} races" (red)  if races > 0
+    + "{T} tasks" (purple)  if RTOS tasks > 0
+
+══════════════════════════════════════════════════════════════════
+NODE DECORATIONS  (new)
+══════════════════════════════════════════════════════════════════
+
+  Red ISR label (top-left)
+    Displayed when is_isr = true. Covers 30+ ISR name patterns:
+    prefixes ISR_ irq_ IRQ_, STM32 peripheral patterns TIM{n}_ etc.,
+    ARM fault patterns HardFault_ SysTick_ etc.,
+    suffixes _IRQHandler _Handler _ISR _irq _isr
+
+  Amber dot (bottom-left)
+    Displayed when delay_in_loop = true. Detected when any of
+    HAL_Delay · osDelay · vTaskDelay · vTaskDelayUntil appears
+    inside a for/while/do loop body in the function AST.
+
+  Number badge (top-right)
+    In-degree count (unchanged from prior release)
+
+  Tooltip enrichment (new fields):
+    file:line · ISR flag · critical section flag
+    delay-in-loop flag · first 4 global writes (red)
+    first 4 global reads (green) · peripheral base names (gold)
+
+══════════════════════════════════════════════════════════════════
+LAUNCHER: INTERACTIVE MENU  (start.sh, 321 lines)
+══════════════════════════════════════════════════════════════════
+
+  No auto-install. No silent side effects.
+  Full ANSI terminal UI with coloured status indicators.
+
+  On every screen: live dependency check
+    ✓ green  = present and working
+    ✗ red    = missing or broken
+    ⚠ yellow = optional or degraded
+
+  [1] Launch
+      Runs check_all(), warns if tree-sitter broken,
+      asks confirmation before launching with degraded deps,
+      then exec python3 server.py
+
+  [2] Install instructions
+      Copy-paste commands for:
+      Ubuntu/Debian · Fedora/RHEL · Arch Linux
+      macOS (Homebrew) · virtualenv (any OS)
+
+  [3] Port settings
+      Shows current port and PID of blocking process (if any)
+      Options: kill PID on port · change to different port
+
+  [4] Diagnostics
+      Python executable path
+      pip list filtered to flask + tree-sitter packages
+      Live parse test: parses "volatile int x=0; void f(void){x++;}"
+        and reports function count
+      Line counts: server.py · analyzer.py · index.html
+
+  [5] About
+      Version · license · architecture diagram · feature summary
+
+  [q] Quit
+
+══════════════════════════════════════════════════════════════════
+BUG FIXES
+══════════════════════════════════════════════════════════════════
+
+  #1  clearTrace() did not reset multiTraceMode / multiTraceA / B
+      → state leaked, stale intersection view after mode switch
+
+  #2  renderGraph() re-rendered full graph instead of staying in
+      intersection mode
+      → added early-return guard that delegates to runMultiTrace()
+
+  #3  runMultiTrace() called clearTrace() internally
+      → clearTrace() triggered renderGraph() → runMultiTrace() loop
+      → replaced with inline state reset (tracedFn=null, history=[])
+
+  #4  newIndex() did not reset multiTraceMode, multiTraceA/B,
+      traceHistory, window._deadFns, window._impactFns,
+      window._heatScores, window._foundPaths
+      → session state leaked across project switches
+
+  #5  newIndex() did not clear #analysis-result innerHTML
+      → stale analysis panel visible after switching projects
+
+  #6  showImpactInGraph() missing null guard for window._changedFns
+      → TypeError crash when called before runImpact() completes
+
+  #7–9  Analysis overlay timing: 300 ms timeout too short for async
+      renderGraph (20 ms spinner + Sugiyama layout + SVG build)
+      → showDeadInGraph, showImpactInGraph, applyHeatmap
+      → increased to 600 ms + error toast if SVG not ready
+
+  #10  ISR pattern too narrow
+      irq_uart_rx, uart_irq, spi_isr not matching.
+      Pattern only covered irq_ prefix, not _irq/_isr suffixes.
+      → extended ISR_RE: added .*_irq$ and .*_isr$ suffix patterns
+
+  #11  RTOS target parser stored struct field access expressions
+      as task function names: thread_def->pthread
+      → filter: skip any target containing -> or . characters
+
+  #12  FreeRTOS internal functions stored as project task nodes
+      prvIdleTask, prv* prefix functions
+      → filter: skip targets matching prv* prefix or in internal set
+
+  #13  JS runHeatmap() const depth declaration
+      Conflicted with app-global `depth` variable (slider value)
+      in flat concatenated test harness, causing SyntaxError.
+      → renamed: hmDepth · hmQ · hmVis throughout runHeatmap()
+
+══════════════════════════════════════════════════════════════════
+TEST SUITE: 64 / 64 PASSING
+══════════════════════════════════════════════════════════════════
+
+  Section 1  File integrity (6)
+    all files exist · server uses analyzer not cflow
+    start.sh bash syntax clean · start.sh no auto-install
+    start.sh all menu items present · index.html JS clean (node --check)
+
+  Section 2  tree-sitter import & basic parse (7)
+    import + parse · function_definition detection
+    global declaration detection · call_expression detection
+    read/write attribution · ISR pattern (12 names tested)
+    RTOS API count (44)
+
+  Section 3  Analyzer — synthetic embedded project (11)
+    analyze_project returns all 8 top-level keys
+    all expected functions in nodes
+    call edges correct (main→pilot_init, main→GPIO_Init, etc.)
+    global variables detected with volatile flag
+    read/write attribution per function
+    ISR flag correct on 4 test functions
+    race conditions detected, severity correct
+    RTOS tasks and objects detected
+    peripheral register map correct (GPIOA, TIM2)
+    module extraction and cross-module edges
+    dead code logic: dead_function + utility_never_called detected,
+      main + ISR + used functions excluded
+
+  Section 4  Real project — EVIC 69 files (13)
+    files found (69) · analyze_project completes (0.3 s)
+    552 nodes ≥100 threshold · 754 edges ≥150 threshold
+    195 globals · 9 modules · cross-module edges
+    race analysis without error
+    RTOS analysis without error
+    peripheral map extracted (FLASH, IWDG)
+    valid JSON ≤5 MB (294 kB)
+    all nodes have required schema fields (16 fields verified)
+    out_degree == len(edges[id]) for every node
+    in_degree == len(callers[id]) for every node
+    no self-loops · edges↔callers symmetric
+
+  Section 5  Real project — HMI 206 files (13)
+    same schema and consistency suite as EVIC
+    570 nodes · 828 edges · 113 globals · 2 modules
+    7 RTOS task creators · 2 shared RTOS objects
+    peripherals: RCC · TIM1 · TIM3
+    JSON 258 kB
+
+  Section 6  Cross-project consistency (5)
+    both graphs share identical top-level key set
+    global read/write references valid
+    all race vars exist in globals dict
+    all race function refs exist in nodes
+    all RTOS task function refs exist in nodes
+
+  Section 7  JS frontend logic — node simulation (9)
+    layoutGraph LR: caller.x < focused.x < callee.x
+    layoutGraph TB: caller.y < callee.y
+    history: back/forward with boundary clamping
+    dead code logic: dead detected, ISR + entry + used excluded
+    path finder DFS: all paths found, sorted by length
+    impact BFS: propagates through full caller chain
+    heatmap scoring: hub score > leaf score
+    intersection trace: correct shared callee set
+    newIndex: all 8 state variables reset
+
+══════════════════════════════════════════════════════════════════
+DEPENDENCIES
+══════════════════════════════════════════════════════════════════
+
+  Runtime:    python 3.8+ · flask · tree-sitter · tree-sitter-c
+  Optional:   ctags (additional symbol metadata)
+  System:     none required
+  Browser:    any modern browser with ES2020 support
+  Frontend:   zero external libraries (pure SVG + vanilla JS)
+
+══════════════════════════════════════════════════════════════════
+
+وَقُل رَّبِّ زِدْنِى عِلْمًا
+"My Lord, increase me in knowledge." — Quran 20:114

@@ -234,6 +234,87 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
 .fb-ok{padding:.3rem .8rem;border-radius:6px;background:var(--accent);border:none;color:#fff;font-size:.73rem;cursor:pointer;font-weight:500}
 .fb-cn{padding:.3rem .65rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text2);font-size:.73rem;cursor:pointer}
 
+/* ── Global var / Race / RTOS / Periph panels ── */
+#globals-panel,#race-panel,#rtos-panel,#periph-panel{
+  position:absolute;top:0;right:0;bottom:0;width:310px;
+  background:var(--bg2);border-left:1px solid var(--border);
+  display:none;flex-direction:column;z-index:8;overflow:hidden;
+}
+#globals-panel.open,#race-panel.open,#rtos-panel.open,#periph-panel.open{display:flex;}
+.side-panel-hdr{padding:.75rem 1rem .6rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.side-panel-title{font-size:.72rem;font-weight:600;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--accent)}
+.side-panel-close{margin-left:auto;background:none;border:none;color:var(--text3);
+  cursor:pointer;font-size:.9rem;padding:0 .2rem}
+.side-panel-close:hover{color:var(--text)}
+.side-panel-body{flex:1;overflow-y:auto;padding:.6rem .75rem}
+.sp-sect{margin-bottom:1rem}
+.sp-sect-title{font-size:.62rem;font-weight:600;color:var(--text3);letter-spacing:.08em;
+  text-transform:uppercase;margin-bottom:.35rem;padding-bottom:.25rem;
+  border-bottom:1px solid var(--border)}
+
+/* Global var rows */
+.gv-row{display:flex;align-items:center;gap:.4rem;padding:.28rem .4rem;
+  border-radius:5px;cursor:pointer;margin-bottom:.15rem;transition:background .1s}
+.gv-row:hover{background:var(--bg3)}
+.gv-row.active{background:var(--accent)18;border:1px solid var(--accent)44}
+.gv-name{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text);flex:1}
+.gv-vol{font-size:.58rem;color:#f59e0b;background:#f59e0b18;
+  border-radius:3px;padding:.05rem .25rem}
+.gv-badges{display:flex;gap:.25rem;align-items:center}
+.gv-badge{font-size:.58rem;border-radius:3px;padding:.05rem .3rem;white-space:nowrap}
+.gv-wr{background:#ef444418;color:#ef6548}
+.gv-rd{background:#22c55e18;color:#22c55e}
+.gv-rw{background:#a78bfa18;color:#a78bfa}
+
+/* Race rows */
+.race-row{background:var(--bg3);border-radius:6px;padding:.5rem .65rem;
+  margin-bottom:.4rem;border-left:3px solid transparent;cursor:pointer}
+.race-row.high{border-color:#ef4444}
+.race-row.medium{border-color:#f59e0b}
+.race-row.low{border-color:#22c55e}
+.race-row:hover{background:var(--bg4)}
+.race-var{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--text);font-weight:600}
+.race-detail{font-size:.63rem;color:var(--text3);margin-top:.2rem;line-height:1.5}
+.race-detail b{color:var(--text2)}
+.race-sev{font-size:.58rem;border-radius:3px;padding:.05rem .3rem;float:right;margin-left:.5rem}
+.sev-high{background:#ef444420;color:#ef6548}
+.sev-medium{background:#f59e0b20;color:#f59e0b}
+.sev-low{background:#22c55e20;color:#22c55e}
+
+/* RTOS graph */
+.rtos-task{background:var(--bg3);border:1px solid var(--border2);border-radius:7px;
+  padding:.55rem .7rem;margin-bottom:.4rem}
+.rtos-task-name{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--accent);
+  font-weight:600;margin-bottom:.3rem}
+.rtos-rel{font-size:.63rem;color:var(--text3);display:flex;align-items:flex-start;
+  gap:.35rem;margin-top:.18rem;line-height:1.4}
+.rtos-rel-icon{flex-shrink:0;width:14px}
+.rtos-rel b{color:var(--text2)}
+.rtos-obj{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.62rem;
+  background:var(--bg4);border:1px solid var(--border2);border-radius:3px;
+  padding:.02rem .3rem;margin:.1rem .1rem 0 0;color:var(--text2)}
+.rtos-obj.queue{border-color:#4a8fff44;color:#4a8fff}
+.rtos-obj.mutex{border-color:#a78bfa44;color:#a78bfa}
+.rtos-obj.sem{border-color:#22c55e44;color:#22c55e}
+
+/* Peripheral map */
+.periph-row{background:var(--bg3);border-radius:6px;padding:.45rem .6rem;
+  margin-bottom:.35rem;cursor:pointer;transition:background .1s}
+.periph-row:hover{background:var(--bg4)}
+.periph-name{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:#d4a843;
+  font-weight:600}
+.periph-fns{font-size:.62rem;color:var(--text3);margin-top:.2rem;line-height:1.5}
+.periph-fn{display:inline-block;font-family:'JetBrains Mono',monospace;
+  background:var(--bg4);border-radius:3px;padding:.02rem .28rem;
+  margin:.1rem .1rem 0 0;font-size:.6rem}
+.periph-fn.wr{color:#ef6548;border:1px solid #ef454520}
+.periph-fn.rd{color:#22c55e;border:1px solid #22c55e20}
+
+/* Toolbar new buttons */
+.gbar-sep{width:1px;height:16px;background:var(--border2);margin:0 .2rem;flex-shrink:0}
+
 /* minimap */
 #minimap{
   position:absolute;bottom:12px;right:12px;
@@ -457,6 +538,11 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
         <button class="gbtn" id="btn-ext"     onclick="toggleExt()"  title="Show external functions">Ext</button>
         <button class="gbtn"                  onclick="exportSVG()"  title="Save as SVG">SVG</button>
         <button class="gbtn"                  onclick="exportPNG()"  title="Save as PNG">PNG</button>
+        <div class="gbar-sep"></div>
+        <button class="gbtn" id="btn-globals" onclick="openGlobals()" title="Global variable dependencies" style="color:#22c55e">Globals</button>
+        <button class="gbtn" id="btn-races"   onclick="openRaces()"   title="Race condition candidates"   style="color:#ef6548">Races</button>
+        <button class="gbtn" id="btn-rtos"    onclick="openRtos()"    title="RTOS architecture"           style="color:#a78bfa">RTOS</button>
+        <button class="gbtn" id="btn-periph"  onclick="openPeriph()"  title="Hardware peripheral map"     style="color:#d4a843">Periph</button>
         <button class="gbtn" id="btn-reset-trace" onclick="clearTrace()" style="display:none">✕ Trace</button>
       </div>
 
@@ -471,6 +557,42 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
           <div class="spinner"></div>
           <div class="loading-msg" id="loading-msg">Rendering…</div>
         </div>
+      </div>
+
+      <!-- ── GLOBALS PANEL ── -->
+      <div id="globals-panel">
+        <div class="side-panel-hdr">
+          <span class="side-panel-title">⬡ Global Variables</span>
+          <button class="side-panel-close" onclick="closeGlobals()">✕</button>
+        </div>
+        <div class="side-panel-body" id="globals-body"></div>
+      </div>
+
+      <!-- ── RACE PANEL ── -->
+      <div id="race-panel">
+        <div class="side-panel-hdr">
+          <span class="side-panel-title" style="color:#ef6548">⚡ Race Conditions</span>
+          <button class="side-panel-close" onclick="closeRaces()">✕</button>
+        </div>
+        <div class="side-panel-body" id="race-body"></div>
+      </div>
+
+      <!-- ── RTOS PANEL ── -->
+      <div id="rtos-panel">
+        <div class="side-panel-hdr">
+          <span class="side-panel-title" style="color:#a78bfa">⟳ RTOS Architecture</span>
+          <button class="side-panel-close" onclick="closeRtos()">✕</button>
+        </div>
+        <div class="side-panel-body" id="rtos-body"></div>
+      </div>
+
+      <!-- ── PERIPHERAL PANEL ── -->
+      <div id="periph-panel">
+        <div class="side-panel-hdr">
+          <span class="side-panel-title" style="color:#d4a843">◈ Peripheral Map</span>
+          <button class="side-panel-close" onclick="closePeriph()">✕</button>
+        </div>
+        <div class="side-panel-body" id="periph-body"></div>
       </div>
 
       <!-- Node info panel -->
@@ -519,6 +641,11 @@ let focusedFn = null;
 let multiTraceA = null;
 let multiTraceB = null;
 let multiTraceMode = false;
+// New analyzer data
+let activeGlobalVar = null;   // currently highlighted global
+let raceView = false;
+let rtosView = false;
+let periphView = false;
 let traceHistory = [];   // [{fn, mode}]
 let traceHistIdx  = -1;
 let svgPan = {x:0, y:0, scale:1};
@@ -631,8 +758,19 @@ function enterApp(src){
   document.getElementById('launch').classList.add('out');
   document.getElementById('app').classList.add('on');
   document.getElementById('tb-src').textContent = src.split('/').pop() || src;
+  const _edgeCount = Object.values(G.edges).reduce((s,v)=>s+v.length,0);
+  const _raceCount = (G.races||[]).length;
+  const _rtosCount = Object.keys((G.rtos||{tasks:{}}).tasks).length;
+  const _periphCount = Object.keys(G.peripherals||{}).length;
   document.getElementById('tb-stat').innerHTML =
-    `<b>${G.nodes.length}</b> fns &nbsp;·&nbsp; <b>${Object.values(G.edges).reduce((s,v)=>s+v.length,0)}</b> edges`;
+    `<b>${G.nodes.length}</b> fns &nbsp;·&nbsp; <b>${_edgeCount}</b> edges`+
+    (_raceCount ? ` &nbsp;·&nbsp; <b style="color:#ef6548">${_raceCount} races</b>` : '')+
+    (_rtosCount ? ` &nbsp;·&nbsp; <b style="color:#a78bfa">${_rtosCount} tasks</b>` : '');
+  // Show analysis buttons based on available data
+  document.getElementById('btn-globals').style.display = G.globals ? '' : 'none';
+  document.getElementById('btn-races').style.display   = (G.races&&G.races.length) ? '' : 'none';
+  document.getElementById('btn-rtos').style.display    = (G.rtos&&Object.keys(G.rtos.tasks||{}).length) ? '' : 'none';
+  document.getElementById('btn-periph').style.display  = (G.peripherals&&Object.keys(G.peripherals).length) ? '' : 'none';
   buildFnList();
   renderGraph();
 }
@@ -815,9 +953,16 @@ function showTooltip(e, fn){
   if(!G) return;
   const meta = G.nodes.find(n=>n.id===fn)||{};
   const tt = document.getElementById('tooltip');
-  tt.innerHTML = `<b>${fn}</b>`+
-    (meta.file?`<span style="color:var(--text3)">${meta.file}</span><br>`:'') +
-    `<span style="color:var(--text3)">in: ${meta.in_degree||0} · out: ${meta.out_degree||0} · ${meta.type||'?'}</span>`;
+  let html = `<b>${fn}</b>`;
+  if(meta.file) html += `<span style="color:var(--text3)">${meta.file}:${meta.line||''}</span><br>`;
+  html += `<span style="color:var(--text3)">in:${meta.in_degree||0} · out:${meta.out_degree||0} · ${meta.type||'?'}</span>`;
+  if(meta.is_isr) html += `<br><span style="color:#ef6548;font-size:.6rem">⚡ ISR</span>`;
+  if(meta.has_critical) html += `<span style="color:#22c55e;font-size:.6rem"> · critical section</span>`;
+  if(meta.delay_in_loop) html += `<span style="color:#f59e0b;font-size:.6rem"> · delay in loop</span>`;
+  if((meta.writes||[]).length) html += `<br><span style="color:#ef6548;font-size:.6rem">writes: ${meta.writes.slice(0,4).join(', ')}${meta.writes.length>4?'…':''}</span>`;
+  if((meta.reads||[]).length)  html += `<br><span style="color:#22c55e;font-size:.6rem">reads: ${meta.reads.slice(0,4).join(', ')}${meta.reads.length>4?'…':''}</span>`;
+  if((meta.peripherals||[]).length) html += `<br><span style="color:#d4a843;font-size:.6rem">periph: ${[...new Set(meta.peripherals.map(p=>p.split('->')[0]))].join(', ')}</span>`;
+  tt.innerHTML = html;
   tt.style.display='block';
   moveTooltip(e);
 }
@@ -1126,6 +1271,20 @@ function renderFnGraph(){
       badge.setAttribute('text-anchor','middle');badge.setAttribute('pointer-events','none');
       badge.textContent=meta.in_degree;
       g.appendChild(badge);
+    }
+    if(meta.is_isr){
+      const isrLbl=document.createElementNS(svgNS,'text');
+      isrLbl.setAttribute('x','4');isrLbl.setAttribute('y','9');
+      isrLbl.setAttribute('font-size','6.5');isrLbl.setAttribute('fill','#ef6548');
+      isrLbl.setAttribute('font-family',"'JetBrains Mono',monospace");
+      isrLbl.setAttribute('pointer-events','none');
+      isrLbl.textContent='ISR'; g.appendChild(isrLbl);
+    }
+    if(meta.delay_in_loop){
+      const dlDot=document.createElementNS(svgNS,'circle');
+      dlDot.setAttribute('cx','7');dlDot.setAttribute('cy','29');dlDot.setAttribute('r','3');
+      dlDot.setAttribute('fill','#f59e0b');dlDot.setAttribute('pointer-events','none');
+      g.appendChild(dlDot);
     }
 
     // click → trace (with drag threshold: only fire if not dragged)
@@ -2024,17 +2183,17 @@ function runHeatmap(){
 
   // Compute BFS depth from any root
   const roots=proj.filter(n=>!(G.callers[n.id]||[]).some(c=>G.nodes.find(x=>x.id===c)?.type==='project'));
-  const depth={};
-  const q=[...roots.map(n=>[n.id,0])];
-  const vis=new Set();
-  while(q.length){
-    const [n,d]=q.shift();
-    if(vis.has(n)) continue; vis.add(n); depth[n]=d;
-    (G.edges[n]||[]).forEach(c=>{ if(!vis.has(c)) q.push([c,d+1]); });
+  const hmDepth={};
+  const hmQ=[...roots.map(n=>[n.id,0])];
+  const hmVis=new Set();
+  while(hmQ.length){
+    const [n,d]=hmQ.shift();
+    if(hmVis.has(n)) continue; hmVis.add(n); hmDepth[n]=d;
+    (G.edges[n]||[]).forEach(c=>{ if(!hmVis.has(c)) hmQ.push([c,d+1]); });
   }
 
   const scored=proj.map(n=>{
-    const d=depth[n.id]||0;
+    const d=hmDepth[n.id]||0;
     const score=(n.out_degree||0)*2 + (n.in_degree||0) + d;
     return {id:n.id, score, out:n.out_degree||0, in:n.in_degree||0, depth:d, file:n.file||''};
   }).sort((a,b)=>b.score-a.score);
@@ -2264,6 +2423,335 @@ function showPathInGraph(idx){
       updateMinimap();
     }catch(e){console.error(e);hideLoading();toast('Render error','error');}
   },20);
+}
+
+
+// ══ GLOBALS PANEL ═════════════════════════════════════════════
+function openGlobals(){
+  if(!G||!G.globals){ toast('Index a project first','error'); return; }
+  const vars = Object.entries(G.globals);
+  if(!vars.length){ toast('No global variables found','error'); return; }
+
+  // Group: volatile first, then by writer count desc
+  vars.sort((a,b)=>{
+    if(b[1].volatile !== a[1].volatile) return b[1].volatile - a[1].volatile;
+    return (b[1].writers.length + b[1].readers.length) - (a[1].writers.length + a[1].readers.length);
+  });
+
+  let html = '';
+
+  // Summary
+  const vols = vars.filter(([,v])=>v.volatile).length;
+  const shared = vars.filter(([,v])=>v.writers.length>0 && v.readers.length>0).length;
+  html += `<div class="sp-sect">
+    <div class="sp-sect-title">Summary</div>
+    <div class="ana-row"><span class="ana-key">Total globals</span><span class="ana-val">${vars.length}</span></div>
+    <div class="ana-row"><span class="ana-key">Volatile</span><span class="ana-val warn">${vols}</span></div>
+    <div class="ana-row"><span class="ana-key">Shared (read+write)</span><span class="ana-val bad">${shared}</span></div>
+  </div>`;
+
+  html += `<div class="sp-sect"><div class="sp-sect-title">Variables — click to highlight</div>`;
+  vars.forEach(([name, meta])=>{
+    const wrCount = meta.writers.length, rdCount = meta.readers.length, rwCount = (meta.rw||[]).length;
+    const total = wrCount + rdCount + rwCount;
+    html += `<div class="gv-row" id="gv-${name}" onclick="highlightGlobalVar('${name}')">
+      <span class="gv-name">${name}</span>
+      <div class="gv-badges">
+        ${meta.volatile ? '<span class="gv-vol">volatile</span>' : ''}
+        ${wrCount ? `<span class="gv-badge gv-wr">W:${wrCount}</span>` : ''}
+        ${rdCount ? `<span class="gv-badge gv-rd">R:${rdCount}</span>` : ''}
+        ${rwCount ? `<span class="gv-badge gv-rw">RW:${rwCount}</span>` : ''}
+      </div>
+    </div>`;
+    if(total > 0){
+      html += `<div style="padding:.1rem .4rem .4rem 1.2rem;font-size:.6rem;color:var(--text3)">`;
+      if(meta.writers.length) html += `<div>✎ ${meta.writers.map(f=>`<span style="cursor:pointer;color:var(--text2)" onclick="traceFunction('${f}')">${f}</span>`).join(', ')}</div>`;
+      if(meta.readers.length) html += `<div>👁 ${meta.readers.map(f=>`<span style="cursor:pointer;color:var(--text2)" onclick="traceFunction('${f}')">${f}</span>`).join(', ')}</div>`;
+      if((meta.rw||[]).length) html += `<div>↕ ${meta.rw.map(f=>`<span style="cursor:pointer;color:var(--text2)" onclick="traceFunction('${f}')">${f}</span>`).join(', ')}</div>`;
+      html += `<div style="color:var(--text3)">${meta.file} : ${meta.line}</div>`;
+      html += `</div>`;
+    }
+  });
+  html += '</div>';
+
+  document.getElementById('globals-body').innerHTML = html;
+  document.getElementById('globals-panel').classList.add('open');
+}
+
+function closeGlobals(){
+  document.getElementById('globals-panel').classList.remove('open');
+  clearGlobalHighlight();
+}
+
+function highlightGlobalVar(varName){
+  clearGlobalHighlight();
+  activeGlobalVar = varName;
+  document.querySelectorAll('.gv-row').forEach(r=>r.classList.remove('active'));
+  const row = document.getElementById('gv-'+varName);
+  if(row) row.classList.add('active');
+
+  if(!G||!G.globals) return;
+  const meta = G.globals[varName];
+  if(!meta) return;
+
+  const writers = new Set(meta.writers||[]);
+  const readers = new Set(meta.readers||[]);
+  const rw      = new Set(meta.rw||[]);
+
+  const svg = document.getElementById('canvas').querySelector('svg');
+  if(!svg) return;
+
+  svg.querySelectorAll('g[data-fn]').forEach(g=>{
+    const fn = g.dataset.fn;
+    const rect = g.querySelector('rect');
+    if(!rect) return;
+    if(writers.has(fn)){
+      rect.setAttribute('stroke','#ef4444'); rect.setAttribute('stroke-width','2.5');
+      rect.style.filter='drop-shadow(0 0 7px #ef444488)';
+    } else if(readers.has(fn)){
+      rect.setAttribute('stroke','#22c55e'); rect.setAttribute('stroke-width','2');
+      rect.style.filter='drop-shadow(0 0 5px #22c55e88)';
+    } else if(rw.has(fn)){
+      rect.setAttribute('stroke','#a78bfa'); rect.setAttribute('stroke-width','2');
+      rect.style.filter='drop-shadow(0 0 6px #a78bfa88)';
+    } else {
+      rect.style.opacity='0.15';
+    }
+  });
+
+  const all = [...writers,...readers,...rw];
+  toast(`${varName} — ${writers.size} writers (red) · ${readers.size} readers (green)`, 'ok');
+}
+
+function clearGlobalHighlight(){
+  activeGlobalVar = null;
+  const svg = document.getElementById('canvas').querySelector('svg');
+  if(!svg) return;
+  svg.querySelectorAll('g[data-fn]').forEach(g=>{
+    const rect = g.querySelector('rect');
+    if(rect){ rect.style.opacity=''; rect.style.filter=''; }
+  });
+  renderGraph(); // restore proper colors
+}
+
+// ══ RACE PANEL ════════════════════════════════════════════════
+function openRaces(){
+  if(!G){ toast('Index a project first','error'); return; }
+  const races = G.races||[];
+
+  let html = '';
+  const high = races.filter(r=>r.severity==='high').length;
+  const med  = races.filter(r=>r.severity==='medium').length;
+  const low  = races.filter(r=>r.severity==='low').length;
+
+  html += `<div class="sp-sect">
+    <div class="sp-sect-title">Summary</div>
+    <div class="ana-row"><span class="ana-key">Total candidates</span><span class="ana-val">${races.length}</span></div>
+    <div class="ana-row"><span class="ana-key">High (unprotected volatile)</span><span class="ana-val bad">${high}</span></div>
+    <div class="ana-row"><span class="ana-key">Medium (unprotected non-volatile)</span><span class="ana-val warn">${med}</span></div>
+    <div class="ana-row"><span class="ana-key">Low (protected by critical section)</span><span class="ana-val ok">${low}</span></div>
+    <div style="font-size:.6rem;color:var(--text3);margin-top:.4rem;line-height:1.5">
+      High = ISR writes volatile, task reads/writes without critical section<br>
+      Click any race to highlight both functions in the graph
+    </div>
+  </div>`;
+
+  if(!races.length){
+    html += '<div style="font-size:.72rem;color:var(--text3);padding:.5rem">No race conditions detected ✓</div>';
+  } else {
+    html += `<div class="sp-sect"><div class="sp-sect-title">Candidates</div>`;
+    races.forEach((r,i)=>{
+      html += `<div class="race-row ${r.severity}" onclick="highlightRace(${i})">
+        <span class="race-sev sev-${r.severity}">${r.severity}</span>
+        <div class="race-var">${r.var}</div>
+        <div class="race-detail">
+          <b>ISR:</b> ${r.isr_writers.join(', ')}<br>
+          <b>Task:</b> ${r.task_fn} (${r.task_access})<br>
+          ${r.protected ? '<b style="color:#22c55e">✓ has critical section</b>' : '<b style="color:#ef6548">✗ no critical section</b>'}
+          ${r.volatile ? ' · volatile' : ''}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('race-body').innerHTML = html;
+  document.getElementById('race-panel').classList.add('open');
+}
+
+function closeRaces(){
+  document.getElementById('race-panel').classList.remove('open');
+  renderGraph();
+}
+
+function highlightRace(idx){
+  const r = (G.races||[])[idx];
+  if(!r) return;
+  const isrSet  = new Set(r.isr_writers);
+  const taskSet = new Set([r.task_fn]);
+  const svg = document.getElementById('canvas').querySelector('svg');
+  if(!svg){ setMode('fn'); clearTrace(); renderGraph(); setTimeout(()=>highlightRace(idx),600); return; }
+  svg.querySelectorAll('g[data-fn]').forEach(g=>{
+    const fn=g.dataset.fn; const rect=g.querySelector('rect');
+    if(!rect) return;
+    if(isrSet.has(fn)){
+      rect.setAttribute('stroke','#ef4444');rect.setAttribute('stroke-width','2.5');
+      rect.style.filter='drop-shadow(0 0 8px #ef444499)';
+    } else if(taskSet.has(fn)){
+      rect.setAttribute('stroke','#f59e0b');rect.setAttribute('stroke-width','2');
+      rect.style.filter='drop-shadow(0 0 6px #f59e0b88)';
+    } else {
+      rect.style.opacity='0.12';
+    }
+  });
+  toast(`Race: ${r.var} — ISR red, task orange`,'ok');
+}
+
+// ══ RTOS PANEL ════════════════════════════════════════════════
+function openRtos(){
+  if(!G){ toast('Index a project first','error'); return; }
+  const rtos = G.rtos||{tasks:{},objects:{}};
+  const tasks = Object.entries(rtos.tasks||{});
+  const objs  = Object.entries(rtos.objects||{});
+
+  if(!tasks.length && !objs.length){
+    document.getElementById('rtos-body').innerHTML =
+      '<div style="font-size:.72rem;color:var(--text3);padding:.5rem">No RTOS calls detected.<br>Supports FreeRTOS and CMSIS-RTOS v2.</div>';
+    document.getElementById('rtos-panel').classList.add('open');
+    return;
+  }
+
+  const ICONS = {
+    task_create:'⊕', task_delete:'⊖', task_suspend:'⏸', task_resume:'▶',
+    queue_send:'→', queue_recv:'←', queue_peek:'👁',
+    mutex_take:'🔒', mutex_give:'🔓', mutex_create:'⊞', sem_create:'⊞',
+    delay:'⏱', event_set:'⚑', event_wait:'⋯',
+    notify_send:'📨', notify_recv:'📬',
+  };
+
+  let html = `<div class="sp-sect">
+    <div class="sp-sect-title">Summary</div>
+    <div class="ana-row"><span class="ana-key">Tasks / creators</span><span class="ana-val">${tasks.length}</span></div>
+    <div class="ana-row"><span class="ana-key">Queues / mutexes / sems</span><span class="ana-val">${objs.length}</span></div>
+  </div>`;
+
+  html += `<div class="sp-sect"><div class="sp-sect-title">Tasks & interactions</div>`;
+  tasks.forEach(([fn, td])=>{
+    html += `<div class="rtos-task">
+      <div class="rtos-task-name" onclick="traceFunction('${fn}')" style="cursor:pointer">${fn}</div>`;
+    if(td.creates.length)    html += `<div class="rtos-rel"><span class="rtos-rel-icon">⊕</span><div><b>creates</b> ${td.creates.map(t=>`<span class="rtos-obj" onclick="traceFunction('${t}')" style="cursor:pointer">${t}</span>`).join('')}</div></div>`;
+    if(td.sends_to.length)   html += `<div class="rtos-rel"><span class="rtos-rel-icon">→</span><div><b>sends to</b> ${td.sends_to.map(q=>`<span class="rtos-obj queue">${q}</span>`).join('')}</div></div>`;
+    if(td.recvs_from.length) html += `<div class="rtos-rel"><span class="rtos-rel-icon">←</span><div><b>recvs from</b> ${td.recvs_from.map(q=>`<span class="rtos-obj queue">${q}</span>`).join('')}</div></div>`;
+    if(td.takes.length)      html += `<div class="rtos-rel"><span class="rtos-rel-icon">🔒</span><div><b>takes</b> ${td.takes.map(m=>`<span class="rtos-obj mutex">${m}</span>`).join('')}</div></div>`;
+    if(td.gives.length)      html += `<div class="rtos-rel"><span class="rtos-rel-icon">🔓</span><div><b>gives</b> ${td.gives.map(m=>`<span class="rtos-obj mutex">${m}</span>`).join('')}</div></div>`;
+    if(td.delays.length)     html += `<div class="rtos-rel"><span class="rtos-rel-icon">⏱</span><div><b>delays</b> ${td.delays[0]}</div></div>`;
+    html += '</div>';
+  });
+  html += '</div>';
+
+  if(objs.length){
+    html += `<div class="sp-sect"><div class="sp-sect-title">Shared objects</div>`;
+    objs.forEach(([name, meta])=>{
+      const cls = meta.kind==='queue'?'queue':meta.kind==='mutex'?'mutex':'sem';
+      html += `<div class="rtos-task" style="margin-bottom:.3rem">
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <span class="rtos-obj ${cls}" style="font-size:.7rem">${name}</span>
+          <span style="font-size:.6rem;color:var(--text3)">${meta.kind}</span>
+        </div>
+        <div style="font-size:.62rem;color:var(--text3);margin-top:.25rem">
+          users: ${(meta.users||[]).map(f=>`<span style="cursor:pointer;color:var(--text2)" onclick="traceFunction('${f}')">${f}</span>`).join(', ')}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('rtos-body').innerHTML = html;
+  document.getElementById('rtos-panel').classList.add('open');
+}
+
+function closeRtos(){
+  document.getElementById('rtos-panel').classList.remove('open');
+}
+
+// ══ PERIPHERAL PANEL ══════════════════════════════════════════
+function openPeriph(){
+  if(!G){ toast('Index a project first','error'); return; }
+  const periph = G.peripherals||{};
+  const entries = Object.entries(periph).sort((a,b)=>{
+    const sa=(a[1].writers||[]).length+(a[1].readers||[]).length;
+    const sb=(b[1].writers||[]).length+(b[1].readers||[]).length;
+    return sb-sa;
+  });
+
+  if(!entries.length){
+    document.getElementById('periph-body').innerHTML =
+      '<div style="font-size:.72rem;color:var(--text3);padding:.5rem">No peripheral register accesses detected.<br>Looks for PERIPH->REG patterns (STM32, etc).</div>';
+    document.getElementById('periph-panel').classList.add('open');
+    return;
+  }
+
+  let html = `<div class="sp-sect">
+    <div class="sp-sect-title">Summary</div>
+    <div class="ana-row"><span class="ana-key">Peripherals accessed</span><span class="ana-val">${entries.length}</span></div>
+  </div>
+  <div class="sp-sect"><div class="sp-sect-title">Peripherals — click to highlight</div>`;
+
+  entries.forEach(([name, meta])=>{
+    const writers = meta.writers||[], readers = meta.readers||[], rws = meta.rw||[];
+    html += `<div class="periph-row" onclick="highlightPeriph('${name}')">
+      <div class="periph-name">${name}</div>
+      <div class="periph-fns">`;
+    writers.forEach(f=> html += `<span class="periph-fn wr" onclick="event.stopPropagation();traceFunction('${f}')">${f}</span>`);
+    readers.forEach(f=> html += `<span class="periph-fn rd" onclick="event.stopPropagation();traceFunction('${f}')">${f}</span>`);
+    rws.forEach(f=>     html += `<span class="periph-fn" style="color:#a78bfa;border:1px solid #a78bfa20" onclick="event.stopPropagation();traceFunction('${f}')">${f}</span>`);
+    html += `</div>
+      <div style="font-size:.58rem;color:var(--text3);margin-top:.2rem">
+        ${writers.length?`<span style="color:#ef6548">W:${writers.length}</span> `:''}
+        ${readers.length?`<span style="color:#22c55e">R:${readers.length}</span> `:''}
+        ${rws.length?`<span style="color:#a78bfa">RW:${rws.length}</span>`:''}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+
+  document.getElementById('periph-body').innerHTML = html;
+  document.getElementById('periph-panel').classList.add('open');
+}
+
+function closePeriph(){
+  document.getElementById('periph-panel').classList.remove('open');
+  renderGraph();
+}
+
+function highlightPeriph(periphName){
+  if(!G||!G.peripherals) return;
+  const meta = G.peripherals[periphName]||{};
+  const writers = new Set(meta.writers||[]);
+  const readers = new Set(meta.readers||[]);
+
+  // Also find all functions that touch this peripheral via node data
+  const svg = document.getElementById('canvas').querySelector('svg');
+  if(!svg){ setMode('fn'); clearTrace(); renderGraph(); setTimeout(()=>highlightPeriph(periphName),600); return; }
+
+  svg.querySelectorAll('g[data-fn]').forEach(g=>{
+    const fn=g.dataset.fn; const rect=g.querySelector('rect');
+    if(!rect) return;
+    const nodeData = G.nodes.find(n=>n.id===fn);
+    const touchesPeriph = nodeData && (nodeData.peripherals||[]).some(p=>p.startsWith(periphName+'->'));
+    if(writers.has(fn)){
+      rect.setAttribute('stroke','#ef4444');rect.setAttribute('stroke-width','2.5');
+      rect.style.filter='drop-shadow(0 0 7px #ef444488)';
+    } else if(readers.has(fn)){
+      rect.setAttribute('stroke','#22c55e');rect.setAttribute('stroke-width','2');
+      rect.style.filter='drop-shadow(0 0 5px #22c55e88)';
+    } else if(touchesPeriph){
+      rect.setAttribute('stroke','#d4a843');rect.setAttribute('stroke-width','1.5');
+    } else {
+      rect.style.opacity='0.12';
+    }
+  });
+  toast(`${periphName} — red=writes · green=reads`,'ok');
 }
 
 

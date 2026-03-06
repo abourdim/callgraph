@@ -1,19 +1,24 @@
 <div align="center">
 
+<br>
+
 ```
 بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
 ```
 
+<br>
+
 # ✦ Callgraph Studio
 
-**Interactive C call graph explorer for embedded systems**
+**Interactive C call graph explorer for embedded firmware engineers**
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey)
-![Language](https://img.shields.io/badge/language-C-orange)
+*Index once. Trace anything. Understand everything.*
 
-*Index once. Explore instantly.*
+![version](https://img.shields.io/badge/version-1.0.0-c9a84c?style=flat-square&labelColor=1a1508)
+![python](https://img.shields.io/badge/python-3.8+-4a7fa5?style=flat-square&labelColor=1a1508)
+![parser](https://img.shields.io/badge/parser-tree--sitter-2a6b6b?style=flat-square&labelColor=1a1508)
+![tests](https://img.shields.io/badge/tests-64%20passing-22c55e?style=flat-square&labelColor=1a1508)
+![license](https://img.shields.io/badge/license-MIT-8b6914?style=flat-square&labelColor=1a1508)
 
 </div>
 
@@ -21,103 +26,104 @@
 
 ## What is it?
 
-Callgraph Studio is a local web application that parses a C codebase and renders its call graph as an interactive SVG. Built for embedded firmware engineers who need to understand large codebases quickly — dead code, change impact, call paths, module coupling — without leaving the browser.
+A **local** web application that parses a C codebase with tree-sitter and renders its full call graph as an interactive SVG. No cloud. No telemetry. No system dependencies beyond Python and a browser.
 
-Tested on a real 69-file embedded firmware project (EVIC): **189 nodes, 298 edges, 8 modules** — renders in under 2 seconds.
+Built for embedded firmware engineers who need to understand large codebases fast: dead code, race conditions, RTOS architecture, peripheral register ownership, change blast radius — all visible in one tool, indexed in under three seconds.
+
+---
+
+## Performance on real projects
+
+| Project | Files | Functions | Edges | Globals | ISRs | RTOS tasks | Index time |
+|---------|------:|----------:|------:|--------:|-----:|-----------:|-----------:|
+| EVIC (embedded firmware) | 69 | 552 | 754 | 195 | 18 | 0 | **0.3 s** |
+| HMI (RTOS + SDK) | 206 | 570 | 828 | 113 | 3 | 7 | **2.4 s** |
 
 ---
 
 ## Features
 
-### Graph exploration
-- **Function view** — full call graph or depth-limited subgraph
-- **Module view** — architectural overview with edge-count heatmap
-- **Trace mode** — click any function to see its callers and callees
-- **Expand view** — functions grouped inside module bubbles with cross-module wires
-- **Matrix view** — coupling heatmap (modules × modules), click cell to filter
+### Graph views
 
-### Navigation
-- **Back / Forward** history with breadcrumb trail (`Alt+←` / `Alt+→`)
-- **Pan** (drag), **zoom** (scroll wheel, pinch, `+`/`-`), **fit** (`F`)
-- **Minimap** — live thumbnail, click to jump anywhere
-- **Search & highlight** — type to filter list and glow matching nodes
+| View | Key | Description |
+|------|-----|-------------|
+| **ƒ Function** | sidebar | Full call graph — depth slider, trace mode, search/filter |
+| **⬡ Module** | `M` | Directory-level architecture — circle layout, edge weight = coupling |
+| **⊞ Expand** | mod options | Functions grouped inside module bubbles with cross-module wires |
+| **▦ Matrix** | mod options | Module × module coupling heatmap — click cell to filter edges |
+
+### Navigation & interaction
+
+- **Trace** — click any node or type in the Trace box (autocomplete, 1 character) → callers left, function centre, callees right
+- **History** — Back `◀` / Forward `▶` with breadcrumb trail (`Alt+←` / `Alt+→`)
+- **Filter** — function list search box filters the sidebar list and highlights matching nodes
+- **Intersection trace** — enter Function A + Function B → renders shared callees only
+- **Pan** (drag) · **Zoom** (scroll / pinch / `+` / `−`) · **Fit** (`F`)
+- **Minimap** — live thumbnail, click to jump
+- **Depth slider** — limit visible hops from root functions (0 = all, 1–10 = fixed depth)
+- **Ext toggle** — show / hide external library nodes
+- **H/V layout** — toggle horizontal / vertical Sugiyama layout `⇆`
+- **Session restore** — 24 h localStorage cache, auto-restored on page reload
 
 ### Analysis tools
-| Tool | What it does |
-|------|-------------|
-| ☠ **Dead code** | Finds functions with no project-level callers. Skips `main`, `ISR_*`, `irq_*`, `init_*` patterns. Export list as `.txt`. |
-| ⚡ **Change impact** | Paste changed function names → BFS forward through all callers → shows affected count per module |
-| 🌡 **Heatmap** | Scores every function by `out×2 + in + depth`. Overlay on graph: green=simple → red=complex |
-| ⇢ **Path finder** | DFS finds all call paths between two functions (up to 20 paths, depth 12). Click any path to render it. |
-| ⊕ **Intersection trace** | Enter two functions → renders only their shared callees |
 
-### Export & persistence
-- **SVG export** — vector, dark background, ready for docs
-- **PNG export** — 2× retina resolution
-- **Session save** — graph persists in `localStorage` for 24 hours; auto-restored on next visit
+| Tool | Description |
+|------|-------------|
+| **☠ Dead code** | Zero-project-in-degree functions. Excludes `main`, `ISR_*`, `irq_*`, `*_irq`, `*_isr`, `init_*`, `startup`. Export `.txt`. |
+| **⚡ Impact** | Paste changed functions → reverse BFS through all callers → affected count by module. Graph overlay: red = changed, orange = affected. |
+| **🌡 Heatmap** | Score = `(out×2) + in + depth`. Green < 33% < Yellow < 66% < Red. Top 10 listed with scores. |
+| **⇢ Path find** | DFS all call paths between two functions. Max 20 paths, depth 12. Click any path → renders as numbered step graph. |
+| **⊕ Intersect** | Shared callees of two functions via descendant BFS + set intersection. |
+
+### Embedded analysis panels
+
+| Panel | Button colour | What it shows |
+|-------|--------------|---------------|
+| **Globals** | Green | All file-scope variables: volatile flag, per-function reads / writes / RW counts. Click var → highlights writers red, readers green in graph. |
+| **Races** | Red | ISR writers × non-ISR accessors of shared globals. Ranked HIGH / MEDIUM / LOW by severity + critical section detection. Click candidate → ISR red, task orange. |
+| **RTOS** | Purple | FreeRTOS + CMSIS-RTOS v2 task/queue/mutex/semaphore graph. 44 APIs. Shared objects listed with all users. |
+| **Periph** | Gold | Hardware register access map (`GPIOA->ODR`, `TIM2->ARR`). Write / read / RW per function. Click peripheral → highlights all touching functions. |
+
+> Panels are hidden automatically when no data is available for that category.
+
+### Node decorations
+
+| Decoration | Meaning |
+|------------|---------|
+| Red `ISR` label (top-left) | Function classified as an interrupt handler |
+| Amber dot (bottom-left) | `delay()` or `vTaskDelay()` found inside a loop |
+| Number badge (top-right) | In-degree — how many functions call this one |
+
+### Export
+
+- **SVG** — full vector, crisp at any size
+- **PNG** — 2× retina via canvas
 
 ---
 
 ## Requirements
 
-| Dependency | Purpose | Install |
-|------------|---------|---------|
-| `python3` + `flask` | Web server | `pip install flask` |
-| `cflow` | Call graph extraction | `apt install cflow` |
-| `ctags` (universal) | Function metadata | `apt install universal-ctags` |
-| `graphviz` (`dot`) | Layout engine | `apt install graphviz` |
-| `gawk` | Stream processing | `apt install gawk` |
+| Dependency | Purpose |
+|------------|---------|
+| Python 3.8+ | Runtime |
+| `flask` | HTTP server + SSE streaming |
+| `tree-sitter` | AST parser engine |
+| `tree-sitter-c` | C grammar |
+| `ctags` | Optional — additional symbol metadata |
 
 ---
 
 ## Quick start
 
 ```bash
-# Clone
-git clone https://github.com/youruser/callgraph-studio.git
+git clone https://github.com/youruser/callgraph-studio
 cd callgraph-studio
-
-# Start (installs Flask automatically if missing)
-./start.sh
-
-# Open browser
-http://localhost:7411
+chmod +x start.sh
+./start.sh            # interactive menu: checks deps, pick port, launch
+# → open http://localhost:7411
 ```
 
-Then enter your project path (e.g. `/home/you/firmware/src`) and click **Index Project**.
-
----
-
-## Project structure
-
-```
-callgraph-studio/
-├── index.html       # Single-file frontend (SVG renderer, all UI)
-├── server.py        # Flask backend (indexing, SSE streaming, file browser)
-├── start.sh         # Launch script (checks deps, starts server)
-├── README.md        # This file
-├── HELP.md          # FAQ, cheat sheet, how-to
-└── runs/            # Temporary indexing workfiles (auto-cleaned)
-```
-
----
-
-## Architecture
-
-```
-Browser                          Server (Flask)
-  │                                    │
-  │  POST /api/index  ─────────────►  │  runs cflow + ctags
-  │                                    │  parses output → JSON graph
-  │  GET  /api/stream/{id}  ◄────────  │  SSE: progress lines
-  │                                    │        __GRAPH__:{...}
-  │                                    │
-  │  localStorage ◄── session save     │
-  │  SVG render    ◄── graph JSON      │
-  │  Analysis      ◄── client-side     │
-```
-
-The backend does one thing: parse C source with `cflow` + `ctags`, build a graph JSON, and stream it back. All rendering, layout, analysis, and navigation runs entirely in the browser.
+Type or paste your project path, click **◈ Index Project**, watch it stream.
 
 ---
 
@@ -126,37 +132,62 @@ The backend does one thing: parse C source with `cflow` + `ctags`, build a graph
 | Key | Action |
 |-----|--------|
 | `F` | Fit graph to window |
-| `+` / `-` | Zoom in / out |
+| `+` / `−` | Zoom in / out |
 | `M` | Toggle Function ↔ Module view |
-| `Escape` | Clear trace / close panel |
-| `Alt + ←` | Navigate back in trace history |
-| `Alt + →` | Navigate forward in trace history |
-| `↑` / `↓` | Navigate autocomplete in trace input |
-| `Enter` | Confirm trace autocomplete selection |
+| `Escape` | Clear trace / close info panel |
+| `Alt + ←` | Back in trace history |
+| `Alt + →` | Forward in trace history |
+| `↑ / ↓` | Navigate autocomplete |
+| `Enter` | Confirm autocomplete |
 
 ---
 
-## Configuration
+## Architecture
 
-The server reads these environment variables:
+```
+Browser  ←──────────────────────────────────────────►  Flask (server.py)
+│                                                       │
+│  index.html — 3 020 lines, zero external libs        │
+│  ├─ SVG renderer (pure SVG, no canvas, no D3)        │  POST /api/index
+│  ├─ Sugiyama-style layout engine (LR / TB)           │  ├─ analyzer.py
+│  ├─ Pan / zoom / minimap                             │  │   Pass 1  globals scan
+│  ├─ Trace · history · breadcrumbs                    │  │   Pass 2  function bodies
+│  ├─ Dead / Impact / Heatmap / Path / Intersect       │  │   Pass 3  call graph
+│  └─ Globals · Races · RTOS · Periph panels           │  │   Pass 4  global var deps
+│                                                       │  │   Pass 5  race detection
+│  ◄── SSE stream: progress + __GRAPH__:{json}         │  │   Pass 6  RTOS graph
+│  localStorage ◄── 24h session cache                  │  │   Pass 7  peripheral map
+```
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `7411` | HTTP port |
-| `ALLOWED_PATHS` | (none) | Comma-separated path prefixes allowed for indexing. Leave unset to allow all. |
+---
 
-```bash
-PORT=8080 ALLOWED_PATHS=/home/user/projects ./start.sh
+## Files
+
+```
+callgraph-studio/
+├── index.html      3 020 lines  — complete single-file frontend
+├── server.py         480 lines  — Flask backend, SSE streaming
+├── analyzer.py       648 lines  — tree-sitter 7-pass analyzer
+├── start.sh          321 lines  — interactive launcher menu
+├── README.md                    — this file
+└── HELP.html                    — full guide, FAQ, cheat sheet
 ```
 
 ---
 
 ## License
 
-MIT — do whatever you want, attribution appreciated.
+MIT — use freely, attribution appreciated.
 
 ---
 
 <div align="center">
-<sub>Built for embedded systems engineers who read code for a living.</sub>
+
+<br>
+
+```
+وَقُل رَّبِّ زِدْنِى عِلْمًا
+"My Lord, increase me in knowledge." — Quran 20:114
+```
+
 </div>

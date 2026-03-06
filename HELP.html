@@ -3,376 +3,1038 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Callgraph Studio — Help</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<title>Callgraph Studio — Help & Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cinzel+Decorative:wght@400;700&family=Amiri:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
 <style>
+/* ════════════════════════════════════════════════════════
+   RESET
+════════════════════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
 
-:root {
-  --bg:#07090f;--bg2:#0d1117;--bg3:#111820;--bg4:#161e2c;
-  --border:#1e2a3a;--border2:#263348;
-  --text:#dce8f8;--text2:#7a95b8;--text3:#3d5270;
-  --accent:#4a8fff;--gold:#d4a843;
-  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;
+/* ════════════════════════════════════════════════════════
+   PALETTE
+   Night sky of Granada · Medinan gold · Andalusian teal
+   Lapis lazuli · Pomegranate crimson · Garden sage
+════════════════════════════════════════════════════════ */
+:root{
+  --night:      #080a0e;
+  --deep:       #0c0f16;
+  --surf:       #111620;
+  --surf2:      #181f2e;
+  --surf3:      #1e2840;
+  --lift:       #263350;
+
+  --gold:       #c9a84c;
+  --gold2:      #e8c96a;
+  --gold3:      #f5e0a0;
+  --gold-dim:   #6a5420;
+  --gold-glow:  rgba(201,168,76,.2);
+  --gold-faint: rgba(201,168,76,.06);
+
+  --teal:       #1a7a72;
+  --teal2:      #22a89e;
+  --teal3:      #a0ebe5;
+
+  --cobalt:     #1e3a8a;
+  --cobalt2:    #2d5bca;
+
+  --crimson:    #7f1d1d;
+  --crimson2:   #c0392b;
+
+  --sage:       #14532d;
+  --sage2:      #22c55e;
+
+  --violet:     #4c1d95;
+  --violet2:    #8b5cf6;
+  --violet3:    #a78bfa;
+
+  --amber:      #d4a843;
+
+  --text:       #e2d9c4;
+  --text2:      #a89878;
+  --text3:      #6a5838;
+  --text-code:  #b8d0a8;
+
+  --border:     rgba(201,168,76,.18);
+  --border2:    rgba(201,168,76,.38);
+  --border3:    rgba(201,168,76,.07);
+
+  --shadow:     rgba(0,0,0,.6);
 }
 
-html,body{min-height:100%;font-family:"Inter",sans-serif;font-size:14px;background:var(--bg);color:var(--text);line-height:1.7}
+/* ════════════════════════════════════════════════════════
+   ALHAMBRA MUQARNAS TILE BACKGROUND
+   Authentic 8-pointed khatam star geometry
+   as seen on the walls of the Nasrid Palaces, Granada
+════════════════════════════════════════════════════════ */
+body{
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:16px; line-height:1.82;
+  background:#080a0e;
+  color:var(--text);
+  overflow-x:hidden;
+  min-height:100vh;
+  cursor:default;
+}
 
-/* Layout */
-.page{max-width:860px;margin:0 auto;padding:2rem 1.5rem 4rem}
+/* Primary tile layer — fine geometric web */
+body::before{
+  content:'';
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cdefs%3E%3Cpattern id='p' width='200' height='200' patternUnits='userSpaceOnUse'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.55'%3E%3C!-- outer dodecagon frame --%3E%3Cpolygon points='100,4 139,15 168,42 180,80 168,118 139,145 100,156 61,145 32,118 20,80 32,42 61,15' opacity='0.45'/%3E%3C!-- inner octagon --%3E%3Cpolygon points='100,30 124,44 138,68 138,92 124,116 100,130 76,116 62,92 62,68 76,44' opacity='0.4'/%3E%3C!-- 8 axis lines --%3E%3Cline x1='100' y1='4' x2='100' y2='196' opacity='0.3'/%3E%3Cline x1='4' y1='100' x2='196' y2='100' opacity='0.3'/%3E%3Cline x1='32' y1='32' x2='168' y2='168' opacity='0.22'/%3E%3Cline x1='168' y1='32' x2='32' y2='168' opacity='0.22'/%3E%3C!-- small khatam accent stars at corners --%3E%3Cpolygon points='4,4 11,10 18,4 12,11 18,18 11,12 4,18 10,11' opacity='0.5'/%3E%3Cpolygon points='182,4 189,10 196,4 190,11 196,18 189,12 182,18 188,11' opacity='0.5'/%3E%3Cpolygon points='4,182 11,188 18,182 12,189 18,196 11,190 4,196 10,189' opacity='0.5'/%3E%3Cpolygon points='182,182 189,188 196,182 190,189 196,196 189,190 182,196 188,189' opacity='0.5'/%3E%3C!-- centre medallion --%3E%3Ccircle cx='100' cy='100' r='12' opacity='0.3'/%3E%3Ccircle cx='100' cy='100' r='6' opacity='0.4' fill='%23c9a84c' fill-opacity='0.08'/%3E%3C/g%3E%3C/pattern%3E%3C/defs%3E%3Crect width='200' height='200' fill='url(%23p)'/%3E%3C/svg%3E");
+  background-size:200px 200px;
+}
 
-/* Header */
-.hdr{text-align:center;padding:2.5rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2.5rem}
-.hdr-ar{font-size:1.6rem;font-family:"Scheherazade New","Noto Naskh Arabic",serif;
-  background:linear-gradient(135deg,#a07820,#d4a843,#f0c060,#d4a843,#a07820);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hdr-title{font-family:"Cinzel",serif;font-size:1.5rem;font-weight:600;color:var(--text);margin:.5rem 0 .25rem;letter-spacing:.04em}
-.hdr-sub{font-size:.8rem;color:var(--text3);letter-spacing:.1em}
-.hdr-badge{display:inline-block;background:var(--accent)22;border:1px solid var(--accent)44;border-radius:20px;padding:.2rem .75rem;font-size:.7rem;color:var(--accent);margin-top:.75rem;font-family:"JetBrains Mono",monospace}
+/* Radial vignette — deep shadow at edges like a mosque interior */
+body::after{
+  content:'';
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:radial-gradient(ellipse 90% 80% at 50% 40%, transparent 35%, #080a0e 100%);
+}
 
-/* Nav */
-.nav{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:2.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
-.nav a{color:var(--text3);text-decoration:none;font-size:.75rem;padding:.3rem .7rem;border-radius:5px;border:1px solid transparent;transition:all .15s}
-.nav a:hover{color:var(--accent);border-color:var(--border2)}
+/* ════════════════════════════════════════════════════════
+   LAYOUT
+════════════════════════════════════════════════════════ */
+.page{
+  position:relative; z-index:1;
+  max-width:1000px; margin:0 auto;
+  padding:0 2rem 7rem;
+}
 
-/* Sections */
-h2{font-family:"Cinzel",serif;font-size:1rem;font-weight:600;color:var(--accent);letter-spacing:.06em;
-   text-transform:uppercase;margin:2.5rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
-h3{font-size:.85rem;font-weight:600;color:var(--text);margin:1.5rem 0 .6rem}
-p{color:var(--text2);margin-bottom:.8rem;font-size:.875rem}
-a{color:var(--accent);text-decoration:none}
-a:hover{text-decoration:underline}
+/* ════════════════════════════════════════════════════════
+   BISMILLAH — Opening invocation
+   As inscribed above the gates of Alhambra
+════════════════════════════════════════════════════════ */
+.bismillah{
+  text-align:center;
+  padding:4rem 1rem 0;
+  position:relative;
+}
+.bism-arabic{
+  font-family:'Amiri',serif;
+  font-size:3.4rem;
+  color:var(--gold);
+  letter-spacing:.04em;
+  line-height:1.4;
+  text-shadow:0 0 60px var(--gold-glow), 0 2px 6px var(--shadow);
+  animation:revealDown .9s ease both;
+}
+.bism-divider{
+  display:flex; align-items:center; justify-content:center;
+  gap:1.2rem; margin:1.4rem 0 .6rem;
+}
+.bism-divider::before,.bism-divider::after{
+  content:'';height:1px;flex:1;max-width:220px;
+  background:linear-gradient(90deg,transparent,var(--gold));
+}
+.bism-divider::after{background:linear-gradient(90deg,var(--gold),transparent)}
+.bism-star{
+  color:var(--gold); font-size:1rem;
+  animation:rotateStar 18s linear infinite;
+  display:inline-block;
+}
 
-/* Code blocks */
-pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1rem 1.2rem;
-    overflow-x:auto;margin:.75rem 0 1rem;font-family:"JetBrains Mono",monospace;font-size:.75rem;
-    color:var(--text2);line-height:1.6}
-code{font-family:"JetBrains Mono",monospace;font-size:.8rem;color:var(--accent);
-     background:var(--bg3);padding:.1rem .35rem;border-radius:3px}
-pre code{background:none;padding:0;color:inherit}
+/* ════════════════════════════════════════════════════════
+   HERO
+════════════════════════════════════════════════════════ */
+.hero{
+  text-align:center;
+  padding:1.8rem 1rem 3rem;
+  animation:revealUp .8s .15s ease both;
+}
+.hero-gem{color:var(--gold3);font-size:1.6rem;vertical-align:middle;margin:0 .3rem}
+.hero-title{
+  font-family:'Cinzel Decorative',serif;
+  font-size:2.8rem; font-weight:700;
+  color:var(--gold2);
+  letter-spacing:.1em; line-height:1.15;
+  text-shadow:0 0 80px var(--gold-glow), 0 2px 8px var(--shadow);
+}
+.hero-eyebrow{
+  font-family:'Cinzel',serif;
+  font-size:.68rem; letter-spacing:.28em; text-transform:uppercase;
+  color:var(--text3); margin:1rem 0 1.6rem;
+}
+.hero-tags{display:flex;justify-content:center;gap:.45rem;flex-wrap:wrap}
+.tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.65rem; letter-spacing:.05em;
+  padding:.22rem .75rem; border-radius:2px;
+  border:1px solid var(--border2);
+  background:var(--surf2); color:var(--gold);
+  text-shadow:0 0 8px var(--gold-glow);
+}
 
-/* Tables */
-table{width:100%;border-collapse:collapse;margin:.75rem 0 1.25rem;font-size:.82rem}
-th{text-align:left;color:var(--text3);font-weight:500;padding:.5rem .75rem;border-bottom:1px solid var(--border2);letter-spacing:.05em;font-size:.72rem;text-transform:uppercase}
-td{padding:.5rem .75rem;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:top}
-td:first-child{color:var(--accent);font-family:"JetBrains Mono",monospace;font-size:.78rem;white-space:nowrap}
+/* ════════════════════════════════════════════════════════
+   NAVIGATION — sticky, glassmorphic
+════════════════════════════════════════════════════════ */
+.nav{
+  position:sticky; top:0; z-index:50;
+  display:flex; flex-wrap:wrap; gap:.28rem;
+  padding:.9rem 1.2rem;
+  background:rgba(8,10,14,.88);
+  border:1px solid var(--border);
+  border-radius:3px; margin-bottom:3.5rem;
+  backdrop-filter:blur(16px) saturate(1.4);
+  animation:revealUp .7s .3s ease both;
+}
+.nav-hd{
+  width:100%;
+  font-family:'Cinzel',serif; font-size:.58rem;
+  letter-spacing:.2em; text-transform:uppercase;
+  color:var(--text3); margin-bottom:.2rem;
+}
+.nav a{
+  font-family:'Cinzel',serif; font-size:.67rem;
+  letter-spacing:.05em; color:var(--text2);
+  text-decoration:none; padding:.18rem .5rem;
+  border:1px solid transparent; border-radius:2px;
+  transition:all .18s;
+}
+.nav a:hover{
+  color:var(--gold); border-color:var(--border);
+  background:var(--surf2);
+  text-shadow:0 0 10px var(--gold-glow);
+}
+
+/* ════════════════════════════════════════════════════════
+   SECTION HEADINGS — with Arabic calligraphy accent
+════════════════════════════════════════════════════════ */
+h2{
+  font-family:'Cinzel',serif;
+  font-size:.9rem; font-weight:700;
+  letter-spacing:.18em; text-transform:uppercase;
+  color:var(--gold);
+  margin:4rem 0 1.8rem;
+  padding:.9rem 1.3rem;
+  background:var(--surf);
+  border:1px solid var(--border);
+  border-left:3px solid var(--gold);
+  border-radius:0 3px 3px 0;
+  display:flex; align-items:center; gap:.9rem;
+  text-shadow:0 0 20px var(--gold-glow);
+  position:relative; overflow:hidden;
+}
+h2::after{
+  content:'';
+  position:absolute; right:0; top:0; bottom:0;
+  width:80px;
+  background:linear-gradient(90deg,transparent,var(--gold-faint));
+}
+.h2-ar{
+  margin-left:auto; position:relative; z-index:1;
+  font-family:'Amiri',serif; font-size:1.2rem;
+  font-weight:400; letter-spacing:0; text-transform:none;
+  color:var(--gold-dim);
+}
+h3{
+  font-family:'Cinzel',serif; font-size:.75rem;
+  font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--teal2);
+  margin:2.4rem 0 .9rem;
+  padding-bottom:.5rem;
+  border-bottom:1px solid var(--border3);
+}
+p{color:var(--text2); margin-bottom:1rem; font-size:1rem}
+a{color:var(--teal2); text-decoration:none; transition:color .15s}
+a:hover{color:var(--gold); text-shadow:0 0 8px var(--gold-glow)}
+strong{color:var(--text); font-weight:600}
+
+/* ════════════════════════════════════════════════════════
+   CODE
+════════════════════════════════════════════════════════ */
+pre{
+  background:var(--surf);
+  border:1px solid var(--border);
+  border-left:3px solid var(--teal);
+  border-radius:0 3px 3px 0;
+  padding:1rem 1.3rem;
+  overflow-x:auto; margin:.6rem 0 1.3rem;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.79rem; line-height:1.7; color:var(--text-code);
+}
+code{
+  font-family:'JetBrains Mono',monospace; font-size:.82rem;
+  color:var(--teal2); background:var(--surf2);
+  padding:.06rem .28rem; border-radius:2px;
+  border:1px solid var(--border3);
+}
+pre code{background:none;border:none;padding:0;color:inherit}
+
+/* ════════════════════════════════════════════════════════
+   TABLES
+════════════════════════════════════════════════════════ */
+.tw{overflow-x:auto;margin:.4rem 0 1.4rem}
+table{width:100%;border-collapse:collapse;font-size:.93rem}
+thead{border-bottom:1px solid var(--border2)}
+th{
+  text-align:left; font-family:'Cinzel',serif;
+  font-size:.59rem; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase;
+  color:var(--text3); padding:.58rem .9rem;
+}
+td{
+  padding:.46rem .9rem; border-bottom:1px solid var(--border3);
+  color:var(--text2); vertical-align:top;
+}
+td:first-child{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.79rem; color:var(--gold);
+  white-space:nowrap;
+}
 tr:last-child td{border:none}
-tr:hover td{background:var(--bg2)}
+tr:hover td{background:var(--surf2)}
 
-/* Cards */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.25rem 1.5rem;margin:.75rem 0}
-.card-title{font-size:.72rem;font-weight:600;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.6rem}
+/* ════════════════════════════════════════════════════════
+   KEYBOARD GRID — modelled on illuminated manuscript tiles
+════════════════════════════════════════════════════════ */
+.kb{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  gap:.38rem; margin:.4rem 0 1.4rem;
+}
+.kb-row{
+  display:flex; align-items:center; gap:.8rem;
+  background:var(--surf); border:1px solid var(--border3);
+  border-radius:3px; padding:.4rem .85rem;
+  transition:border-color .18s;
+}
+.kb-row:hover{border-color:var(--border)}
+.kb-key{
+  font-family:'JetBrains Mono',monospace; font-size:.7rem;
+  color:var(--gold2); background:var(--surf2);
+  border:1px solid var(--border2); border-bottom:2px solid var(--border2);
+  border-radius:3px; padding:.1rem .45rem;
+  white-space:nowrap; flex-shrink:0;
+  text-shadow:0 0 8px var(--gold-glow);
+  box-shadow:0 2px 0 rgba(0,0,0,.5);
+}
+.kb-desc{font-size:.87rem;color:var(--text2)}
 
-/* Shortcut grid */
-.kb-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
-.kb-item{display:flex;align-items:center;gap:.75rem;background:var(--bg3);border-radius:6px;padding:.45rem .75rem}
-.kb-key{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--text);background:var(--bg4);
-        border:1px solid var(--border2);border-radius:4px;padding:.15rem .45rem;white-space:nowrap;flex-shrink:0}
-.kb-desc{font-size:.75rem;color:var(--text2)}
+/* ════════════════════════════════════════════════════════
+   CARDS — arched niches of the Alhambra
+════════════════════════════════════════════════════════ */
+.card{
+  background:var(--surf);
+  border:1px solid var(--border);
+  border-radius:3px;
+  padding:1.3rem 1.5rem;
+  margin:.4rem 0 1.3rem;
+  position:relative; overflow:hidden;
+}
+.card::before{
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold) 40%,var(--gold) 60%,transparent);
+}
+.card::after{
+  content:'';
+  position:absolute; right:-20px; top:-20px;
+  width:80px; height:80px;
+  background:radial-gradient(circle,var(--gold-faint),transparent 70%);
+  pointer-events:none;
+}
+.card-hd{
+  font-family:'Cinzel',serif; font-size:.68rem; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:.8rem;
+}
+.card-formula{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.88rem; color:var(--gold2);
+  background:var(--surf2); border:1px solid var(--border3);
+  border-radius:2px; padding:.5rem 1rem;
+  display:inline-block; margin:.3rem 0 .8rem;
+}
 
-/* Alert */
-.note{background:var(--accent)0d;border:1px solid var(--accent)33;border-radius:7px;padding:.75rem 1rem;
-      margin:.75rem 0;font-size:.82rem;color:var(--text2)}
-.note b{color:var(--accent)}
-.warn{background:#f59e0b0d;border-color:#f59e0b33}
-.warn b{color:#f59e0b}
+/* ════════════════════════════════════════════════════════
+   NOTES
+════════════════════════════════════════════════════════ */
+.note{
+  background:var(--surf); border:1px solid var(--border3);
+  border-left:3px solid var(--teal);
+  border-radius:0 3px 3px 0;
+  padding:.7rem 1.1rem; margin:.5rem 0 1.1rem;
+  font-size:.93rem; color:var(--text2);
+}
+.note.warn{border-left-color:var(--gold-dim)}
+.note strong{color:var(--teal2)}
+.note.warn strong{color:var(--gold)}
 
-/* Step list */
-ol{padding-left:1.4rem;color:var(--text2);font-size:.875rem}
-ol li{margin-bottom:.4rem;padding-left:.3rem}
-ol li strong{color:var(--text)}
-ul{padding-left:1.4rem;color:var(--text2);font-size:.875rem}
-ul li{margin-bottom:.3rem}
+/* ════════════════════════════════════════════════════════
+   STEPS — numbered list, gold medallion counters
+════════════════════════════════════════════════════════ */
+ol.steps{
+  list-style:none; counter-reset:st;
+  padding:0; margin:.5rem 0 1.2rem;
+}
+ol.steps li{
+  counter-increment:st;
+  display:flex; gap:1rem; align-items:flex-start;
+  margin-bottom:.65rem; color:var(--text2); font-size:.97rem;
+}
+ol.steps li::before{
+  content:counter(st);
+  flex-shrink:0; width:26px; height:26px;
+  background:var(--surf2); border:1px solid var(--border2);
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Cinzel',serif; font-size:.65rem; font-weight:700;
+  color:var(--gold); margin-top:.18rem;
+  text-shadow:0 0 8px var(--gold-glow);
+}
 
-/* Footer */
-.footer{text-align:center;margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);
-        font-size:.7rem;color:var(--text3);letter-spacing:.06em}
+/* ════════════════════════════════════════════════════════
+   FAQ — accordion
+════════════════════════════════════════════════════════ */
+.faq{margin-bottom:.38rem}
+.faq-q{
+  font-family:'Cinzel',serif; font-size:.82rem; font-weight:600;
+  letter-spacing:.04em; color:var(--text);
+  background:var(--surf2); border:1px solid var(--border3);
+  border-radius:3px; padding:.8rem 1.1rem;
+  cursor:pointer; display:flex; align-items:center; gap:.7rem;
+  user-select:none; transition:border-color .18s, color .18s;
+}
+.faq-q:hover{color:var(--gold);border-color:var(--border)}
+.faq-q::before{
+  content:'◈'; color:var(--gold-dim); font-size:.72rem; flex-shrink:0;
+  transition:transform .25s, color .2s;
+}
+.faq-q.open{color:var(--gold);border-color:var(--border2)}
+.faq-q.open::before{transform:rotate(45deg);color:var(--gold)}
+.faq-a{
+  display:none;
+  background:var(--surf); border:1px solid var(--border3);
+  border-top:none; border-radius:0 0 3px 3px;
+  padding:1rem 1.3rem; color:var(--text2);
+  font-size:.95rem; line-height:1.8;
+}
+.faq-a.open{display:block}
+.faq-a p:last-child{margin:0}
 
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+/* ════════════════════════════════════════════════════════
+   SEVERITY BADGES
+════════════════════════════════════════════════════════ */
+.sev{
+  display:inline-block; border-radius:2px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.65rem; font-weight:600; letter-spacing:.04em;
+  padding:.1rem .4rem;
+}
+.sev-h{background:rgba(192,57,43,.18);color:#e06050;border:1px solid rgba(192,57,43,.35)}
+.sev-m{background:rgba(212,168,67,.18);color:#d4a843;border:1px solid rgba(212,168,67,.35)}
+.sev-l{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.25)}
+
+/* ════════════════════════════════════════════════════════
+   ORNAMENTAL ARCH DIVIDER
+   The horseshoe arch — symbol of Alhambra's layered arches
+════════════════════════════════════════════════════════ */
+.arch{text-align:center;margin:3.5rem 0;position:relative}
+.arch::before{
+  content:'';position:absolute;left:0;right:0;top:50%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--border2) 25%,var(--border2) 75%,transparent);
+}
+.arch span{
+  display:inline-block;position:relative;
+  background:var(--night);padding:0 1.8rem;
+  font-family:'Amiri',serif;font-size:1.6rem;
+  color:var(--gold-dim);letter-spacing:.35rem;
+}
+
+/* ════════════════════════════════════════════════════════
+   FOOTER — Quranic closing, minaret arch
+════════════════════════════════════════════════════════ */
+.footer{
+  text-align:center;
+  margin-top:6rem; padding:3rem 0 2rem;
+  border-top:1px solid var(--border3);
+}
+.footer-minaret{
+  margin:0 auto 2rem; width:100px; height:70px;
+}
+.footer-minaret svg{width:100%;height:100%}
+.footer-ar{
+  font-family:'Amiri',serif; font-size:2.2rem;
+  color:var(--gold); text-shadow:0 0 40px var(--gold-glow);
+  line-height:1.5; margin-bottom:.4rem;
+}
+.footer-tr{
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic; font-size:1.05rem;
+  color:var(--text3); margin-bottom:1.4rem;
+}
+.footer-meta{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.67rem; color:var(--text3); letter-spacing:.06em;
+}
+.footer-nav{
+  display:flex; justify-content:center; gap:2rem;
+  margin-top:1.2rem;
+}
+.footer-nav a{
+  font-family:'Cinzel',serif; font-size:.65rem;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--text3);
+}
+
+/* ════════════════════════════════════════════════════════
+   ANIMATIONS
+════════════════════════════════════════════════════════ */
+@keyframes revealDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes revealUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes rotateStar{to{transform:rotate(360deg)}}
+
+/* ════════════════════════════════════════════════════════
+   SCROLLBAR
+════════════════════════════════════════════════════════ */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--night)}
+::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--gold)}
+
+/* ════════════════════════════════════════════════════════
+   PRINT
+════════════════════════════════════════════════════════ */
+@media print{
+  body::before,body::after{display:none}
+  .nav{position:static;backdrop-filter:none}
+  h2{color:#000;text-shadow:none;border-color:#ccc}
+}
 </style>
 </head>
 <body>
 <div class="page">
 
-<div class="hdr">
-  <div class="hdr-ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
-  <div class="hdr-title">✦ Callgraph Studio</div>
-  <div class="hdr-sub">FAQ · CHEAT SHEET · HOW-TO · TROUBLESHOOTING</div>
-  <span class="hdr-badge">v1.0.0</span>
+<!-- ═══════════════════════════════════════════════════
+     BISMILLAH
+═══════════════════════════════════════════════════ -->
+<div class="bismillah">
+  <div class="bism-arabic">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+  <div class="bism-divider">
+    <span class="bism-star">✦</span>
+    <span class="bism-star" style="animation-delay:-6s">◈</span>
+    <span class="bism-star" style="animation-delay:-12s">✦</span>
+  </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════
+     HERO
+═══════════════════════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-title">
+    <span class="hero-gem">◈</span>Callgraph Studio<span class="hero-gem">◈</span>
+  </div>
+  <div class="hero-eyebrow">Help &nbsp;·&nbsp; FAQ &nbsp;·&nbsp; Cheat Sheet &nbsp;·&nbsp; Full Reference</div>
+  <div class="hero-tags">
+    <span class="tag">v1.0.0</span>
+    <span class="tag">tree-sitter parser</span>
+    <span class="tag">7-pass analyzer</span>
+    <span class="tag">64 / 64 tests passing</span>
+    <span class="tag">no cloud · no telemetry</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     NAVIGATION
+═══════════════════════════════════════════════════ -->
 <nav class="nav">
+  <div class="nav-hd">Contents</div>
   <a href="#cheatsheet">Cheat Sheet</a>
   <a href="#start">Getting Started</a>
   <a href="#faq">FAQ</a>
-  <a href="#howto">How-To</a>
-  <a href="#graph">Understanding the Graph</a>
-  <a href="#analysis">Analysis Tools</a>
-  <a href="#troubleshoot">Troubleshooting</a>
+  <a href="#trace">Tracing</a>
+  <a href="#dead">Dead Code</a>
+  <a href="#impact">Impact</a>
+  <a href="#heatmap">Heatmap</a>
+  <a href="#paths">Paths</a>
+  <a href="#intersect">Intersect</a>
+  <a href="#globals">Globals</a>
+  <a href="#races">Races</a>
+  <a href="#rtos">RTOS</a>
+  <a href="#periph">Peripherals</a>
+  <a href="#graph-ref">Graph Reference</a>
+  <a href="#analysis-ref">Analysis Reference</a>
+  <a href="#trouble">Troubleshooting</a>
 </nav>
 
-<!-- ══ CHEAT SHEET ══════════════════════════════════════════ -->
-<h2 id="cheatsheet">⌨ Quick Cheat Sheet</h2>
 
-<div class="kb-grid">
-  <div class="kb-item"><span class="kb-key">F</span><span class="kb-desc">Fit graph to window</span></div>
-  <div class="kb-item"><span class="kb-key">+ / −</span><span class="kb-desc">Zoom in / out</span></div>
-  <div class="kb-item"><span class="kb-key">M</span><span class="kb-desc">Toggle Function ↔ Module view</span></div>
-  <div class="kb-item"><span class="kb-key">Esc</span><span class="kb-desc">Clear trace, close panels</span></div>
-  <div class="kb-item"><span class="kb-key">Alt ←</span><span class="kb-desc">Back in trace history</span></div>
-  <div class="kb-item"><span class="kb-key">Alt →</span><span class="kb-desc">Forward in trace history</span></div>
-  <div class="kb-item"><span class="kb-key">↑ ↓</span><span class="kb-desc">Navigate autocomplete</span></div>
-  <div class="kb-item"><span class="kb-key">Enter</span><span class="kb-desc">Confirm autocomplete</span></div>
+<!-- ════════════════════════════════════════════════
+     §1 CHEAT SHEET
+════════════════════════════════════════════════ -->
+<h2 id="cheatsheet">
+  ✦ Cheat Sheet
+  <span class="h2-ar">ورقة مرجعية</span>
+</h2>
+
+<h3>Keyboard shortcuts</h3>
+<div class="kb">
+  <div class="kb-row"><span class="kb-key">F</span><span class="kb-desc">Fit graph to window</span></div>
+  <div class="kb-row"><span class="kb-key">+</span><span class="kb-desc">Zoom in</span></div>
+  <div class="kb-row"><span class="kb-key">−</span><span class="kb-desc">Zoom out</span></div>
+  <div class="kb-row"><span class="kb-key">M</span><span class="kb-desc">Toggle Function ↔ Module view</span></div>
+  <div class="kb-row"><span class="kb-key">Esc</span><span class="kb-desc">Clear trace · close info panel</span></div>
+  <div class="kb-row"><span class="kb-key">Alt ←</span><span class="kb-desc">Back in trace history</span></div>
+  <div class="kb-row"><span class="kb-key">Alt →</span><span class="kb-desc">Forward in trace history</span></div>
+  <div class="kb-row"><span class="kb-key">↑ ↓</span><span class="kb-desc">Navigate autocomplete list</span></div>
+  <div class="kb-row"><span class="kb-key">Enter</span><span class="kb-desc">Confirm autocomplete selection</span></div>
 </div>
 
-<h3>Mouse & Touch</h3>
-<table>
-  <tr><td>Drag</td><td>Pan the graph</td></tr>
-  <tr><td>Scroll wheel</td><td>Zoom in / out</td></tr>
-  <tr><td>Pinch (trackpad)</td><td>Zoom in / out</td></tr>
-  <tr><td>Click node</td><td>Trace that function</td></tr>
-  <tr><td>Click minimap</td><td>Jump to that area of the graph</td></tr>
-</table>
+<h3>Mouse / touch</h3>
+<div class="tw"><table>
+  <tr><td>Drag canvas</td><td>Pan the graph</td></tr>
+  <tr><td>Scroll wheel</td><td>Zoom in / out at pointer position</td></tr>
+  <tr><td>Pinch (trackpad / touch)</td><td>Zoom in / out</td></tr>
+  <tr><td>Click node</td><td>Enter trace mode for that function</td></tr>
+  <tr><td>Hover node</td><td>Tooltip: file, line, in/out degree, reads/writes, peripherals, ISR flag</td></tr>
+  <tr><td>Click minimap</td><td>Jump to that region of the graph</td></tr>
+</table></div>
 
-<h3>Graph Bar Buttons</h3>
-<table>
-  <tr><td>◀ ▶</td><td>History back / forward</td></tr>
-  <tr><td>Fit</td><td>Fit graph to screen</td></tr>
-  <tr><td>⇆</td><td>Toggle Horizontal / Vertical layout</td></tr>
-  <tr><td>+ −</td><td>Zoom buttons</td></tr>
-  <tr><td>Ext</td><td>Show/hide external (library) functions</td></tr>
-  <tr><td>SVG</td><td>Export current view as vector SVG</td></tr>
-  <tr><td>PNG</td><td>Export current view as 2× PNG</td></tr>
-  <tr><td>✕ Trace</td><td>Clear trace, return to full graph</td></tr>
-</table>
+<h3>Graph bar buttons</h3>
+<div class="tw"><table>
+  <tr><td>◀ ▶</td><td>History back / forward (<code>Alt+←</code> / <code>Alt+→</code>)</td></tr>
+  <tr><td>Fit</td><td>Fit and centre graph in window (<code>F</code>)</td></tr>
+  <tr><td>⇆</td><td>Toggle horizontal / vertical Sugiyama layout</td></tr>
+  <tr><td>+  −  <em>pct</em></td><td>Zoom in / out / current zoom percentage</td></tr>
+  <tr><td>Ext</td><td>Toggle visibility of external (library) function nodes</td></tr>
+  <tr><td>SVG</td><td>Export current graph as scalable vector</td></tr>
+  <tr><td>PNG</td><td>Export current graph as 2× retina PNG</td></tr>
+  <tr><td style="color:var(--sage2)">Globals</td><td>Global variable dependency panel (shown when data available)</td></tr>
+  <tr><td style="color:var(--crimson2)">Races</td><td>Race condition candidates panel (shown when races detected)</td></tr>
+  <tr><td style="color:var(--violet3)">RTOS</td><td>RTOS architecture panel (shown when RTOS APIs detected)</td></tr>
+  <tr><td style="color:var(--amber)">Periph</td><td>Hardware peripheral register map (shown when peripherals detected)</td></tr>
+  <tr><td>✕ Trace</td><td>Exit trace mode, return to full graph</td></tr>
+</table></div>
 
-<!-- ══ GETTING STARTED ══════════════════════════════════════ -->
-<h2 id="start">◈ Getting Started</h2>
+<h3>Sidebar sections</h3>
+<div class="tw"><table>
+  <tr><td>Mode</td><td><strong>ƒ Function</strong> — call graph &nbsp;|&nbsp; <strong>⬡ Module</strong> — directory architecture</td></tr>
+  <tr><td>Module options</td><td><strong>⊞ Expand</strong> — functions inside module bubbles &nbsp;|&nbsp; <strong>▦ Matrix</strong> — coupling heatmap grid</td></tr>
+  <tr><td>Depth</td><td>Range 0 (∞ = all) to 10 — limits visible hops from root functions</td></tr>
+  <tr><td>Style</td><td>Colour style pills for node styling</td></tr>
+  <tr><td>Trace function</td><td>Autocomplete search — 1 character activates, arrows navigate, Enter confirms</td></tr>
+  <tr><td>Intersection trace</td><td>Enter Function A + Function B → shows shared callees only</td></tr>
+  <tr><td>Analysis</td><td>☠ Dead code · ⚡ Impact · 🌡 Heatmap · ⇢ Path find</td></tr>
+  <tr><td>Filter functions</td><td>Text box at bottom — filters sidebar list and highlights matching nodes in graph</td></tr>
+</table></div>
 
-<h3>1. Start the server</h3>
-<pre>./start.sh
-# Opens at: http://localhost:7411</pre>
+<h3>Topbar stats</h3>
+<p>After indexing, the topbar shows: <strong>N fns · M edges</strong> and, if detected: <span style="color:var(--crimson2)"><strong>N races</strong></span> · <span style="color:var(--violet3)"><strong>N tasks</strong></span>. The Races / RTOS / Periph panel buttons appear only when the analyzer found relevant data.</p>
 
-<h3>2. Index your project</h3>
-<ol>
-  <li>Enter the <strong>absolute path</strong> to your C source directory, or click <strong>Browse</strong></li>
-  <li>Click <strong>◈ Index Project</strong></li>
-  <li>Watch the progress bar — large projects index in 5–30 seconds</li>
+<div class="arch"><span>✦ ◈ ✦</span></div>
+
+
+<!-- ════════════════════════════════════════════════
+     §2 GETTING STARTED
+════════════════════════════════════════════════ -->
+<h2 id="start">
+  ✦ Getting Started
+  <span class="h2-ar">البداية</span>
+</h2>
+
+<ol class="steps">
+  <li><strong>Start the launcher:</strong> run <code>./start.sh</code> from the project directory. The interactive menu checks all dependencies and shows their status before launch.</li>
+  <li><strong>Open the app:</strong> navigate to <code>http://localhost:7411</code> (or the port you chose in the launcher).</li>
+  <li><strong>Index your project:</strong> type the absolute path to your C source directory in the index box — or click <strong>Browse</strong> to navigate the filesystem — then click <strong>◈ Index Project</strong>.</li>
+  <li><strong>Watch the stream:</strong> progress messages appear live as the 7-pass analyzer processes your files. A 200-file project takes about 2–3 seconds.</li>
+  <li><strong>Explore:</strong> the full call graph appears. Click any function in the sidebar list or any node in the graph to enter trace mode. Use the Analysis panel for dead code, change impact, heatmap, path finding, and intersection traces.</li>
 </ol>
 
-<div class="note"><b>Tip:</b> Your last indexed path is remembered. Next visit auto-fills the field.</div>
+<div class="note">
+  <strong>Session persistence:</strong> After the first index, results are stored in <code>localStorage</code> for 24 hours. Reloading the page restores the graph instantly — no re-index needed until your source changes.
+</div>
+<div class="note warn">
+  <strong>Re-index vs New project:</strong> Click <strong>⟳ Re-index</strong> to reparse the same path after code changes. Click <strong>＋ New</strong> to clear everything and index a different project.
+</div>
 
-<h3>3. Explore</h3>
-<ol>
-  <li>The <strong>function list</strong> (left sidebar) shows all functions ranked by call count</li>
-  <li>Click any function → <strong>trace mode</strong> shows its callers and callees</li>
-  <li>Or type in the <strong>Trace function</strong> box with autocomplete</li>
-  <li>Click any <strong>graph node</strong> to trace it</li>
-  <li>Use <strong>◀ ▶</strong> or <code>Alt+←/→</code> to navigate your trace history</li>
+<div class="arch"><span>◈</span></div>
+
+
+<!-- ════════════════════════════════════════════════
+     §3 FAQ
+════════════════════════════════════════════════ -->
+<h2 id="faq">
+  ✦ Frequently Asked Questions
+  <span class="h2-ar">الأسئلة الشائعة</span>
+</h2>
+
+<div class="faq">
+  <div class="faq-q">What kinds of C project does this work with?</div>
+  <div class="faq-a"><p>Any C project: bare-metal embedded firmware, RTOS applications, HAL/driver libraries, communication stacks, bootloaders. The parser is tree-sitter which handles preprocessor-heavy embedded C well. Only <code>.c</code> files are parsed — <code>.cpp</code> files are skipped.</p></div>
+</div>
+
+<div class="faq">
+  <div class="faq-q">How long does indexing take?</div>
+  <div class="faq-a"><p>About 0.3–0.5 s per 10 source files on typical hardware. Measured on real projects: EVIC (69 files, 552 functions) = <strong>0.3 s</strong>, HMI SDK (206 files, 570 functions) = <strong>2.4 s</strong>. After the first index, localStorage caching makes reloads instant for 24 hours.</p></div>
+</div>
+
+<div class="faq">
+  <div class="faq-q">Some functions are missing from the graph.</div>
+  <div class="faq-a"><p>tree-sitter follows explicit <code>call_expression</code> AST nodes. Functions invoked only through <strong>function pointers stored in structs or arrays</strong> will not appear as edges — the pointer assignment is visible but the call target is not statically resolvable. External library functions (called but not defined in your <code>.c</code> files) appear as gray "external" nodes — hide them with the <strong>Ext</strong> button to reduce visual noise.</p></div>
+</div>
+
+<div class="faq">
+  <div class="faq-q">My graph has 500+ nodes and is slow or unreadable.</div>
+  <div class="faq-a"><p>Use the <strong>Depth slider</strong> (sidebar) to limit to 2–3 hops from root functions. Or use <strong>Trace mode</strong> on a specific function — it only renders that function's immediate callers and callees and stays fast at any project size. The <strong>Module view</strong> (⬡) is always fast and gives the architectural overview without node overload.</p></div>
+</div>
+
+<div class="faq">
+  <div class="faq-q">Is my source code sent anywhere?</div>
+  <div class="faq-a"><p>No. Everything runs entirely on your machine. The Flask server binds to <code>localhost</code> only. No analytics, no telemetry, no network requests of any kind are made. Your code never leaves your computer.</p></div>
+</div>
+
+<div class="faq">
+  <div class="faq-q">Can I use this on a remote build server?</div>
+  <div class="faq-a">
+    <p>Yes. SSH port forwarding works cleanly:</p>
+    <pre>ssh -L 7411:localhost:7411 user@build-server
+# Then open http://localhost:7411 locally</pre>
+    <p>Or set <code>PORT=8080</code> before launching to use a different port.</p>
+  </div>
+</div>
+
+<div class="faq">
+  <div class="faq-q">The race detector found zero races. Is that correct?</div>
+  <div class="faq-a"><p>Possibly yes. The detector requires: (1) a function with an ISR-convention name that <em>writes</em> a file-scope global, and (2) a separate non-ISR function that reads or writes that same global, and (3) no critical section entry call detected in the non-ISR function. If your ISRs use non-standard naming, or your shared data goes through RTOS queues/mailboxes rather than raw globals, the detector correctly finds nothing.</p></div>
+</div>
+
+<div class="faq">
+  <div class="faq-q">The RTOS panel is empty.</div>
+  <div class="faq-a"><p>The RTOS panel detects FreeRTOS and CMSIS-RTOS v2 API calls <em>by name</em>. If your project wraps these APIs behind macros (e.g. <code>#define OS_TASK_CREATE xTaskCreate</code>), tree-sitter sees only the macro name and cannot match it. The panel covers 44 direct API call names — see the RTOS section below for the full list.</p></div>
+</div>
+
+<div class="faq">
+  <div class="faq-q">PNG export is black or blank.</div>
+  <div class="faq-a"><p>PNG export renders the SVG through an HTML Canvas element, which some browsers restrict via cross-origin policies, producing a black image. Use <strong>SVG export</strong> instead — it is always reliable, resolution-independent, and smaller. To convert to PNG: open in Inkscape and export, or run <code>rsvg-convert -f png -o out.png graph.svg</code>.</p></div>
+</div>
+
+<div class="faq">
+  <div class="faq-q">The session is not restored after page reload.</div>
+  <div class="faq-a"><p>localStorage must be enabled in your browser. Private / incognito mode disables it. Check your browser privacy settings. If localStorage is unavailable, re-index from the same path — the analyzer is fast enough that this is not a burden.</p></div>
+</div>
+
+<script>
+document.querySelectorAll('.faq-q').forEach(q=>{
+  q.addEventListener('click',()=>{
+    q.classList.toggle('open');
+    q.nextElementSibling.classList.toggle('open');
+  });
+});
+</script>
+
+<div class="arch"><span>✦ ◈ ✦</span></div>
+
+
+<!-- ════════════════════════════════════════════════
+     §4–8  HOW-TO GUIDES
+════════════════════════════════════════════════ -->
+
+<h2 id="trace">✦ Tracing a Function <span class="h2-ar">تتبع دالة</span></h2>
+<ol class="steps">
+  <li>Type the function name in the <strong>Trace function</strong> box — autocomplete activates after 1 character. Use <code>↑</code>/<code>↓</code> to navigate, <code>Enter</code> to confirm.</li>
+  <li>Or click any node in the full graph — it enters trace mode immediately.</li>
+  <li>The graph re-renders: <strong>callers on the left</strong>, the traced function highlighted in the centre, <strong>callees on the right</strong>.</li>
+  <li>Click any node in the trace graph to trace <em>that</em> function — history updates automatically.</li>
+  <li>Navigate history with <code>◀</code> / <code>▶</code> or <code>Alt+←</code> / <code>Alt+→</code>. The breadcrumb trail below the graph bar shows the full session path — click any crumb to jump back.</li>
+  <li>Press <code>Escape</code> or click <strong>✕ Trace</strong> to return to the full graph.</li>
 </ol>
+<div class="note">The info panel (click the ⓘ icon on any node) shows full details: file, line, all callers, all callees. Click any name in the info panel to trace it.</div>
 
-<h3>4. Switch views</h3>
-<table>
-  <tr><td>ƒ Function</td><td>Individual function call graph with depth control</td></tr>
-  <tr><td>⬡ Module</td><td>Directory-level architectural overview</td></tr>
-  <tr><td>⊞ Expand</td><td>Functions grouped inside module bubbles</td></tr>
-  <tr><td>▦ Matrix</td><td>Module coupling heatmap — click cell to filter</td></tr>
-</table>
 
-<!-- ══ FAQ ══════════════════════════════════════════════════ -->
-<h2 id="faq">? FAQ</h2>
-
-<h3>What C projects does this work with?</h3>
-<p>Any C project parseable by <code>cflow</code>. Best suited for embedded firmware, RTOS code, drivers, and C libraries. C++ files (<code>.cpp</code>) are ignored.</p>
-
-<h3>How long does indexing take?</h3>
-<p>About 1 second per 10 source files. A 70-file project indexes in ~5 seconds. Results are cached in the browser for 24 hours — reopening the page restores your session instantly without re-indexing.</p>
-
-<h3>My graph has 500+ nodes and is slow.</h3>
-<p>Use the <strong>Depth</strong> slider to limit the graph to 2–4 levels. Or use <strong>Trace</strong> mode on a specific function — trace mode only renders the subgraph around one function, always fast.</p>
-
-<h3>Some functions are missing.</h3>
-<p><code>cflow</code> follows explicit function calls. Functions called only via <strong>function pointers</strong>, macros, or inline assembly may not appear. External library functions show as gray "external" nodes — hide them with <strong>Ext</strong>.</p>
-
-<h3>Can I save my graph?</h3>
-<p>Yes — three ways: (1) <strong>SVG / PNG</strong> export buttons save the current view, (2) the session auto-saves to <code>localStorage</code> and restores on next visit (24h TTL), (3) click <strong>✕ Session</strong> in the topbar to clear.</p>
-
-<h3>What does Re-index vs + New do?</h3>
-<table>
-  <tr><td>⟳ Re-index</td><td>Re-parses the same source directory (use after code changes)</td></tr>
-  <tr><td>＋ New</td><td>Clears everything and lets you index a different project</td></tr>
-</table>
-
-<h3>Is my source code sent anywhere?</h3>
-<p>No. Everything runs locally. The server runs on your machine, the browser connects to <code>localhost</code>. No analytics, no telemetry, no external requests.</p>
-
-<h3>Can I run this on a remote server?</h3>
-<pre>ssh -L 7411:localhost:7411 user@server
-# Then open http://localhost:7411 in your local browser</pre>
-
-<!-- ══ HOW-TO ════════════════════════════════════════════════ -->
-<h2 id="howto">▶ How-To Guides</h2>
-
-<h3>Find dead code</h3>
-<ol>
-  <li>In <strong>Analysis</strong>, click <strong>☠ Dead code</strong></li>
-  <li>View unreachable functions with their source files</li>
-  <li>Click <strong>Show in graph</strong> → dead functions glow red, others dim</li>
-  <li>Click <strong>Export list</strong> → saves <code>.txt</code> file</li>
+<h2 id="dead">✦ Dead Code Detector <span class="h2-ar">الكود الميت</span></h2>
+<ol class="steps">
+  <li>In the <strong>Analysis</strong> section of the sidebar, click <strong>☠ Dead code</strong>.</li>
+  <li>The results panel lists all functions with zero project-level callers, sorted by file.</li>
+  <li>Click any function name in the list to trace it in the graph.</li>
+  <li>Click <strong>Show in graph</strong> — dead functions are highlighted red, all others dim to 20% opacity.</li>
+  <li>Click <strong>Export list</strong> — downloads a <code>.txt</code> file with function name, file path, and line number for each dead function.</li>
 </ol>
-<div class="note"><b>Auto-excluded entry points:</b> <code>main</code>, <code>ISR_*</code>, <code>irq_*</code>, <code>interrupt_*</code>, <code>handler_*</code>, <code>init_*</code>, <code>_init</code>, <code>startup</code> (case-insensitive)</div>
+<div class="note warn">
+  <strong>Auto-excluded entry points</strong> (never flagged as dead): <code>main</code>, <code>ISR_*</code>, <code>irq_*</code>, <code>*_irq</code>, <code>*_isr</code>, <code>interrupt_*</code>, <code>handler_*</code>, <code>init_*</code>, <code>_init</code>, <code>startup</code>, <code>reset_handler</code>, <code>_start</code>, <code>setup</code>.
+</div>
+<div class="note">
+  <strong>Limitation:</strong> Functions called only via function pointer appear dead even when live at runtime. In callback-heavy code (state machines, dispatch tables), cross-check results manually.
+</div>
 
-<h3>Analyse change impact</h3>
-<ol>
-  <li>In <strong>Analysis</strong>, click <strong>⚡ Impact</strong></li>
-  <li>Enter changed function names (one per line or comma-separated)</li>
-  <li>Click <strong>⚡ Analyse impact</strong></li>
-  <li>See affected count per module</li>
-  <li>Click <strong>Show in graph</strong> → red = changed, orange = affected callers</li>
+
+<h2 id="impact">✦ Change Impact Analysis <span class="h2-ar">تحليل أثر التغيير</span></h2>
+<ol class="steps">
+  <li>In <strong>Analysis</strong>, click <strong>⚡ Impact</strong>.</li>
+  <li>Paste the names of the functions you changed — one per line or comma-separated. Autocomplete is not active here; spelling must match exactly.</li>
+  <li>Click <strong>⚡ Analyse impact</strong>.</li>
+  <li>Results show total affected caller count and a per-module breakdown.</li>
+  <li>Click <strong>Show in graph</strong> — red nodes = your changed functions, orange nodes = transitively affected callers.</li>
+  <li>Click <strong>◁ Edit</strong> to return to the input and adjust the function list.</li>
 </ol>
+<div class="note"><strong>Algorithm:</strong> Reverse BFS — starting at each changed function and walking upward through all callers recursively. The blast radius is every function that can transitively reach any of your changes through any call chain.</div>
 
-<h3>Find a call path between two functions</h3>
-<ol>
-  <li>In <strong>Analysis</strong>, click <strong>⇢ Path find</strong></li>
-  <li>Enter <strong>From</strong> and <strong>To</strong> function names</li>
-  <li>Click <strong>⇢ Find paths</strong></li>
-  <li>Results appear ranked shortest-first — click any to render it as a step-numbered graph</li>
+
+<h2 id="heatmap">✦ Complexity Heatmap <span class="h2-ar">خريطة التعقيد</span></h2>
+<ol class="steps">
+  <li>In <strong>Analysis</strong>, click <strong>🌡 Heatmap</strong>.</li>
+  <li>The top 10 highest-scoring functions are listed with score, file, and out/in/depth components.</li>
+  <li>Click any function name to trace it.</li>
+  <li>Click <strong>Apply to graph</strong> — every node is recoloured on a green → yellow → red gradient based on its score relative to the project maximum.</li>
+  <li>Click <strong>Clear</strong> to restore the original node colours.</li>
 </ol>
-<div class="note warn"><b>Tip:</b> If no path found, try swapping From/To. The functions may be in separate call trees.</div>
+<div class="card">
+  <div class="card-hd">Scoring formula</div>
+  <div class="card-formula">score = (out_degree × 2) + in_degree + call_depth</div>
+  <p>Out-degree is weighted 2× because fan-out determines how many downstream callers you must audit and test. In-degree measures how many callers depend on this function. Call-depth is the BFS distance from the nearest root function (one with no project callers). Colour thresholds: green &lt; 33% &lt; yellow &lt; 66% &lt; red of the project maximum score.</p>
+</div>
 
-<h3>Apply the complexity heatmap</h3>
-<ol>
-  <li>In <strong>Analysis</strong>, click <strong>🌡 Heatmap</strong></li>
-  <li>Review the top 10 riskiest functions</li>
-  <li>Click <strong>Apply to graph</strong> → nodes recolored green→yellow→red</li>
-  <li>Click any function name to trace it immediately</li>
-  <li>Click <strong>Clear</strong> to restore default colors</li>
+
+<h2 id="paths">✦ Call Path Finder <span class="h2-ar">مُوجِد المسار</span></h2>
+<ol class="steps">
+  <li>In <strong>Analysis</strong>, click <strong>⇢ Path find</strong>.</li>
+  <li>Enter a <strong>From</strong> function (source) and a <strong>To</strong> function (target). Both validate against known function names.</li>
+  <li>Click <strong>⇢ Find paths</strong>.</li>
+  <li>Results appear ranked shortest-first — each shows hop count and the full function sequence.</li>
+  <li>Click any path row to render it as a step-numbered graph.</li>
+  <li>Click any node in the path graph to trace it further.</li>
 </ol>
+<div class="note warn"><strong>No path found?</strong> The call graph is directed — A calling B does not mean B calls A. Try swapping From and To. Maximum search depth: 12 hops. Maximum results returned: 20 paths.</div>
 
-<h3>Compare two call trees</h3>
-<ol>
-  <li>In <strong>Intersection trace</strong>, enter Function A and Function B</li>
-  <li>Click <strong>⊕ Intersect</strong></li>
-  <li>Graph shows only shared callees: blue = A root, purple = B root, green = shared</li>
+
+<h2 id="intersect">✦ Intersection Trace <span class="h2-ar">تقاطع المسارات</span></h2>
+<ol class="steps">
+  <li>In the <strong>Intersection trace</strong> sidebar section, enter <strong>Function A</strong> and <strong>Function B</strong>.</li>
+  <li>Click <strong>⊕ Intersect</strong>.</li>
+  <li>The graph renders only the functions that appear in <em>both</em> call trees — the shared callees of A and B.</li>
+  <li>Click <strong>Clear</strong> to return to the full graph.</li>
 </ol>
+<div class="note"><strong>Algorithm:</strong> Full descendant BFS from both functions independently, then set intersection of all reachable nodes. Useful for: "what code is shared between the CAN stack and the USB stack?" or "what does both the init path and the error recovery path touch?"</div>
 
-<h3>Explore module architecture</h3>
-<ol>
-  <li>Click <strong>⬡ Module</strong></li>
-  <li>Circle diagram: nodes = modules (directories), edge thickness = call volume</li>
-  <li>Click a module node → jumps to Function view for that module</li>
-  <li>Click <strong>⊞ Expand</strong> → functions inside module bubbles, cross-module wires</li>
-  <li>Click <strong>▦ Matrix</strong> → hover cells for counts, click to filter</li>
+
+<h2 id="globals">✦ Global Variable Dependencies <span class="h2-ar">تبعيات المتغيرات العامة</span></h2>
+<ol class="steps">
+  <li>Click <strong>Globals</strong> in the graph bar (green) — appears after indexing a project that has file-scope variables.</li>
+  <li>All detected globals are listed. Volatile variables appear first. Summary shows total count and volatile count.</li>
+  <li>Each row shows: write count (red W badge), read count (green R badge), read-modify-write count (purple RW badge).</li>
+  <li>Click any variable name — the graph highlights writers red, readers green, RW functions purple, all others dim.</li>
+  <li>Expand a variable row to see the per-function list. Click any function name to trace it.</li>
+  <li>Click <strong>✕</strong> in the panel header or press <code>Escape</code> to close and restore the graph.</li>
 </ol>
+<div class="note">
+  <strong>Write detection:</strong> direct assignment (<code>x = val</code>), compound assignment (<code>x |= mask</code>, <code>x &amp;= ~bit</code>, <code>x += n</code>), increment/decrement (<code>x++</code>, <code>--x</code>).
+  <strong>RW:</strong> read-modify-write (the left side of a compound assignment is both read and written).
+  <strong>Read:</strong> any right-hand-side or argument use of the global identifier.
+</div>
 
-<h3>Export for documentation</h3>
-<ol>
-  <li>Set up the view you want (trace, heatmap, path, etc.)</li>
-  <li>Click <strong>SVG</strong> for vector — scales perfectly in Word, Notion, Confluence</li>
-  <li>Click <strong>PNG</strong> for raster — 2× resolution, dark background baked in</li>
+
+<h2 id="races">✦ Race Condition Analysis <span class="h2-ar">تحليل حالات السباق</span></h2>
+<ol class="steps">
+  <li>Click <strong>Races</strong> in the graph bar (red) — appears only when races are detected.</li>
+  <li>Candidates are ranked: HIGH first, then MEDIUM, then LOW. A summary shows totals by severity.</li>
+  <li>Click any candidate row — the ISR function highlights red, the non-ISR function highlights orange in the graph.</li>
+  <li>Close the panel to restore the graph.</li>
 </ol>
+<div class="tw"><table>
+  <thead><tr><th>Severity</th><th>Condition</th></tr></thead>
+  <tr><td><span class="sev sev-h">HIGH</span></td><td>Volatile global written by an ISR-named function, accessed (read or written) by a non-ISR function with no critical section entry call detected</td></tr>
+  <tr><td><span class="sev sev-m">MEDIUM</span></td><td>Non-volatile global — same unprotected access pattern</td></tr>
+  <tr><td><span class="sev sev-l">LOW</span></td><td>Global accessed across ISR/non-ISR boundary, but the non-ISR function body contains a detected critical section entry call</td></tr>
+</table></div>
+<div class="note warn">
+  <strong>ISR name patterns detected:</strong><br>
+  Prefixes: <code>ISR_</code> <code>irq_</code> <code>IRQ_</code><br>
+  STM32 peripheral: <code>TIM{n}_</code> <code>USART{n}_</code> <code>UART{n}_</code> <code>SPI{n}_</code> <code>I2C{n}_</code> <code>DMA{n}_</code> <code>ADC{n}_</code> <code>EXTI{n}</code> <code>USB_</code> <code>CAN{n}_</code><br>
+  CPU faults: <code>NMI_</code> <code>HardFault_</code> <code>MemManage_</code> <code>BusFault_</code> <code>UsageFault_</code> <code>SVC_</code> <code>DebugMon_</code> <code>PendSV_</code> <code>SysTick_</code><br>
+  Suffixes: <code>_IRQHandler</code> <code>_Handler</code> <code>_ISR</code> <code>_irq</code> <code>_isr</code>
+</div>
+<div class="note">
+  <strong>Critical section entry APIs detected</strong> (marks severity LOW): <code>__disable_irq</code> <code>taskENTER_CRITICAL</code> <code>taskENTER_CRITICAL_FROM_ISR</code> <code>portDISABLE_INTERRUPTS</code> <code>__set_PRIMASK</code> <code>vPortEnterCritical</code> <code>osCriticalSectionEnter</code> <code>NVIC_DisableIRQ</code> <code>HAL_SuspendTick</code>
+</div>
 
-<!-- ══ UNDERSTANDING THE GRAPH ══════════════════════════════ -->
-<h2 id="graph">◈ Understanding the Graph</h2>
 
-<h3>Node colors</h3>
-<table>
-  <tr><th>Color</th><th>Meaning</th></tr>
-  <tr><td>Blue border</td><td>Project function — defined in your source</td></tr>
-  <tr><td>Dark gray border</td><td>External function — from library or system header</td></tr>
-  <tr><td>Gold border</td><td>Macro-defined function</td></tr>
-  <tr><td>White border</td><td>Currently focused / traced function</td></tr>
-  <tr><td>Red border</td><td>Caller of the traced function</td></tr>
-  <tr><td>Green border</td><td>Callee of the traced function</td></tr>
-</table>
+<h2 id="rtos">✦ RTOS Architecture <span class="h2-ar">بنية نظام التشغيل الفوري</span></h2>
+<ol class="steps">
+  <li>Click <strong>RTOS</strong> in the graph bar (purple) — appears when RTOS API calls are detected.</li>
+  <li>Each task creator is listed with its observed relationships: creates tasks, sends to queues, receives from queues, takes mutexes/semaphores, gives mutexes/semaphores, delays.</li>
+  <li>Click any task function name to trace it in the call graph.</li>
+  <li>The <strong>Shared Objects</strong> section lists all detected queues, mutexes, and semaphores with every function that uses each one.</li>
+</ol>
+<div class="card">
+  <div class="card-hd">44 APIs detected — FreeRTOS + CMSIS-RTOS v2</div>
+  <p><strong>Tasks:</strong> <code>xTaskCreate</code> <code>xTaskCreateStatic</code> <code>xTaskCreateRestricted</code> <code>osThreadNew</code> <code>vTaskDelete</code> <code>osThreadTerminate</code> <code>vTaskSuspend</code> <code>vTaskResume</code></p>
+  <p><strong>Queues:</strong> <code>xQueueCreate</code> <code>xQueueSend</code> <code>xQueueSendToBack</code> <code>xQueueSendToFront</code> <code>xQueueSendFromISR</code> <code>xQueueReceive</code> <code>xQueueReceiveFromISR</code> <code>xQueuePeek</code> <code>osMessageQueueNew</code> <code>osMessageQueuePut</code> <code>osMessageQueueGet</code></p>
+  <p><strong>Mutex / Semaphore:</strong> <code>xSemaphoreCreateMutex</code> <code>xSemaphoreCreateBinary</code> <code>xSemaphoreCreateCounting</code> <code>xSemaphoreTake</code> <code>xSemaphoreTakeFromISR</code> <code>xSemaphoreGive</code> <code>xSemaphoreGiveFromISR</code> <code>osMutexNew</code> <code>osMutexAcquire</code> <code>osMutexRelease</code> <code>osSemaphoreNew</code> <code>osSemaphoreAcquire</code> <code>osSemaphoreRelease</code></p>
+  <p><strong>Events / Notify:</strong> <code>xEventGroupSetBits</code> <code>xEventGroupWaitBits</code> <code>osEventFlagsSet</code> <code>osEventFlagsWait</code> <code>xTaskNotify</code> <code>xTaskNotifyFromISR</code> <code>xTaskNotifyWait</code></p>
+  <p style="margin:0"><strong>Delays:</strong> <code>vTaskDelay</code> <code>vTaskDelayUntil</code> <code>osDelay</code> <code>osDelayUntil</code> <code>HAL_Delay</code></p>
+</div>
+<div class="note">FreeRTOS internal functions (<code>prvIdleTask</code>, <code>prv*</code> prefix) and CMSIS macro artefacts (<code>thread_def->pthread</code>) are automatically filtered and do not appear as project tasks.</div>
 
-<h3>Edge colors (trace mode)</h3>
-<table>
-  <tr><th>Color</th><th>Meaning</th></tr>
-  <tr><td>Red →</td><td>Calls going OUT from the traced function</td></tr>
-  <tr><td>Green →</td><td>Calls coming IN to the traced function</td></tr>
-  <tr><td>Dark blue →</td><td>Other edges in the graph</td></tr>
-</table>
 
-<h3>The number badge (top-right corner of node)</h3>
-<p>Shows <strong>in-degree</strong> — how many other functions call this one. Higher = more central to the codebase. Functions with in-degree 0 and no matching entry-point pattern are candidates for dead code.</p>
+<h2 id="periph">✦ Peripheral Register Map <span class="h2-ar">خريطة سجلات الأجهزة</span></h2>
+<ol class="steps">
+  <li>Click <strong>Periph</strong> in the graph bar (gold/amber) — appears when <code>PERIPH-&gt;REG</code> access patterns are detected.</li>
+  <li>Peripherals are listed sorted by total access count (most-used first).</li>
+  <li>Function names are coloured: red = write, green = read, purple = read-modify-write.</li>
+  <li>Click any peripheral name — all functions touching it are highlighted in the graph.</li>
+  <li>Click any function name in the panel to trace it.</li>
+</ol>
+<div class="note">
+  <strong>Peripheral names detected:</strong> GPIO (A–K) · TIM (1–14) · USART / UART (1–6) · SPI (1–6) · I2C (1–3) · DMA (1–2) · ADC · DAC · RCC · FLASH · PWR · SYSCFG · EXTI · NVIC · SCB · SysTick · CAN · USB · RTC · IWDG · WWDG · LTDC · SAI · QUADSPI · SDIO and more. Extend by editing <code>PERIPHERAL_RE</code> in <code>analyzer.py</code>.
+</div>
 
-<h3>Depth slider</h3>
-<table>
-  <tr><td>∞ (0)</td><td>Show all reachable functions from all roots</td></tr>
-  <tr><td>1</td><td>Root functions + their direct children only</td></tr>
-  <tr><td>2–4</td><td>Recommended for large projects (&gt;100 functions)</td></tr>
-</table>
+<div class="arch"><span>✦ ◈ ✦</span></div>
 
-<!-- ══ ANALYSIS TOOLS ════════════════════════════════════════ -->
-<h2 id="analysis">⚗ Analysis Tools Reference</h2>
+
+<!-- ════════════════════════════════════════════════
+     §9 GRAPH REFERENCE
+════════════════════════════════════════════════ -->
+<h2 id="graph-ref">✦ Graph Reference <span class="h2-ar">مرجع الرسم البياني</span></h2>
+
+<h3>Node border colours</h3>
+<div class="tw"><table>
+  <tr><td style="color:var(--cobalt2)">Blue</td><td>Project function — defined in a <code>.c</code> file in your source tree</td></tr>
+  <tr><td style="color:var(--text3)">Gray</td><td>External function — called but defined in a library or system header</td></tr>
+  <tr><td style="color:var(--gold)">Gold</td><td>Macro — detected by ctags as a preprocessor macro definition</td></tr>
+  <tr><td style="color:white">White</td><td>Traced / focused function (centre of the current trace view)</td></tr>
+  <tr><td style="color:var(--crimson2)">Red</td><td>Caller of the currently traced function</td></tr>
+  <tr><td style="color:var(--sage2)">Green</td><td>Callee of the currently traced function</td></tr>
+</table></div>
+
+<h3>Node decorations</h3>
+<div class="tw"><table>
+  <tr><td>Number badge (top-right)</td><td>In-degree — count of functions that call this one</td></tr>
+  <tr><td style="color:var(--crimson2)">Red <code>ISR</code> label (top-left)</td><td>Function detected as an interrupt service routine</td></tr>
+  <tr><td style="color:var(--amber)">Amber dot (bottom-left)</td><td>Function contains <code>HAL_Delay</code>, <code>vTaskDelay</code>, or similar inside a <code>for</code>/<code>while</code>/<code>do</code> loop</td></tr>
+</table></div>
+
+<h3>Edge colours in trace mode</h3>
+<div class="tw"><table>
+  <tr><td style="color:var(--crimson2)">Red arrow</td><td>Outgoing call from the traced function to a callee</td></tr>
+  <tr><td style="color:var(--sage2)">Green arrow</td><td>Incoming call from a caller to the traced function</td></tr>
+  <tr><td style="color:var(--text3)">Dim arrow</td><td>Other edges visible within the current depth window</td></tr>
+</table></div>
+
+<h3>Depth slider behaviour</h3>
+<div class="tw"><table>
+  <tr><td>0 (∞)</td><td>All reachable nodes from all root functions — can be very large</td></tr>
+  <tr><td>1–2</td><td>Root functions plus their immediate children</td></tr>
+  <tr><td>3–4</td><td>Recommended starting point for projects with 100+ functions</td></tr>
+  <tr><td>5+</td><td>Deep exploration of a specific region after narrowing focus</td></tr>
+</table></div>
+
+
+<!-- ════════════════════════════════════════════════
+     §10 ANALYSIS REFERENCE
+════════════════════════════════════════════════ -->
+<h2 id="analysis-ref">✦ Analysis Reference <span class="h2-ar">مرجع التحليل</span></h2>
 
 <div class="card">
-  <div class="card-title">☠ Dead Code Detector</div>
-  <p><strong>Algorithm:</strong> finds project functions where no project-level function calls them (in-degree from project = 0).</p>
-  <p><strong>Auto-excluded:</strong> <code>main</code>, <code>ISR_*</code>, <code>irq_*</code>, <code>interrupt_*</code>, <code>handler_*</code>, <code>init_*</code>, <code>_init</code>, <code>startup</code></p>
-  <p><strong>Limitation:</strong> functions called only via function pointers appear dead even if they are live.</p>
+  <div class="card-hd">☠ Dead Code Detector</div>
+  <p><strong>Algorithm:</strong> Finds project-type nodes where the effective in-degree from other project nodes is 0 (no project function calls them). External function callers do not count.</p>
+  <p><strong>Excluded:</strong> <code>main</code>, <code>ISR_*</code>, <code>irq_*</code>, <code>*_irq</code>, <code>*_isr</code>, <code>interrupt_*</code>, <code>handler_*</code>, <code>init_*</code>, <code>_init</code>, <code>startup</code>, <code>reset_handler</code>, <code>_start</code>, <code>setup</code></p>
+  <p style="margin:0"><strong>Known limitation:</strong> Functions called only via function pointer appear dead. Cross-check in callback-heavy code.</p>
 </div>
 
 <div class="card">
-  <div class="card-title">⚡ Change Impact Analysis</div>
-  <p><strong>Algorithm:</strong> reverse BFS — starts at the changed functions and walks upward through all callers.</p>
-  <p><strong>Output:</strong> total affected count, breakdown by module, graph overlay (red = changed, orange = affected).</p>
+  <div class="card-hd">⚡ Change Impact Analysis</div>
+  <p><strong>Algorithm:</strong> Reverse BFS from each changed function upward through the caller graph. Terminates when no more callers are reachable or when a node has already been visited.</p>
+  <p style="margin:0"><strong>Output:</strong> Total affected count, grouped by module, with graph overlay (red = changed, orange = affected callers).</p>
 </div>
 
 <div class="card">
-  <div class="card-title">🌡 Complexity Heatmap</div>
-  <p><strong>Score formula:</strong> <code>(out_degree × 2) + in_degree + call_depth</code></p>
-  <p>Out-degree is weighted 2× because fan-out drives complexity more than fan-in. Call depth is computed via BFS from all root functions.</p>
-  <p><strong>Color scale:</strong> green (simple) → yellow (medium) → red (complex)</p>
+  <div class="card-hd">🌡 Complexity Heatmap</div>
+  <div class="card-formula">score = (out_degree × 2) + in_degree + call_depth</div>
+  <p><strong>call_depth:</strong> BFS distance from the nearest root (no project callers) to this function.</p>
+  <p style="margin:0">Colour mapping: green = score &lt; 33% of project max · yellow = 33–66% · red = &gt; 66%</p>
 </div>
 
 <div class="card">
-  <div class="card-title">⇢ Call Path Finder</div>
-  <p><strong>Algorithm:</strong> DFS with backtracking. Limits: max 20 paths, max depth 12 hops.</p>
-  <p><strong>Output:</strong> paths sorted shortest-first, each rendered as a step-numbered graph on click.</p>
+  <div class="card-hd">⇢ Call Path Finder</div>
+  <p><strong>Algorithm:</strong> DFS with a visited-set to avoid cycles. Backtracks at depth 12. Stops when 20 paths are found. Results sorted by path length ascending.</p>
+  <p style="margin:0"><strong>Rendered graph:</strong> clicking a path shows each function numbered in sequence order.</p>
 </div>
 
 <div class="card">
-  <div class="card-title">⊕ Intersection Trace</div>
-  <p><strong>Algorithm:</strong> full descendant BFS for both functions, then set intersection.</p>
-  <p><strong>Output:</strong> shared subgraph — blue = root A, purple = root B, green = shared callees.</p>
+  <div class="card-hd">⊕ Intersection Trace</div>
+  <p><strong>Algorithm:</strong> Full descendant BFS from Function A and from Function B independently, producing two sets. The intersection (nodes in both sets) is rendered as a subgraph.</p>
+  <p style="margin:0"><strong>Use cases:</strong> "What code is shared between the USB driver and the CAN driver?" · "What do both the boot path and the OTA path call?"</p>
 </div>
 
-<!-- ══ TROUBLESHOOTING ═══════════════════════════════════════ -->
-<h2 id="troubleshoot">⚠ Troubleshooting</h2>
+<div class="arch"><span>◈</span></div>
 
-<table>
-  <tr><th>Symptom</th><th>Fix</th></tr>
-  <tr><td>"No functions found" after indexing</td><td>Verify the path contains <code>.c</code> files. Check <code>cflow</code> is installed.</td></tr>
-  <tr><td>Graph shows 0 edges</td><td>Install <code>cflow</code> v1.6+: <code>sudo apt install cflow</code></td></tr>
-  <tr><td>PNG export shows black image</td><td>Use SVG instead. PNG via canvas has browser-specific quirks.</td></tr>
-  <tr><td>Session not restored on reload</td><td>Enable cookies/localStorage in browser settings.</td></tr>
-  <tr><td>Port already in use</td><td><code>kill $(lsof -t -i:7411)</code> then <code>./start.sh</code></td></tr>
-  <tr><td>Nodes cut off at left edge</td><td>Click <strong>Fit</strong> — layout auto-centers on fit.</td></tr>
-  <tr><td>"cflow: command not found"</td><td><code>sudo apt install cflow</code></td></tr>
-  <tr><td>Graph freezes at 500+ nodes</td><td>Use Depth slider (2–3) or Trace mode on a specific function.</td></tr>
-  <tr><td>Functions called via pointer not shown</td><td>This is a cflow limitation — manual inspection needed for pointer-dispatch code.</td></tr>
-</table>
 
-<h3>Server won't start</h3>
-<pre># Check Flask
-python3 -c "import flask" || pip install flask
+<!-- ════════════════════════════════════════════════
+     §11 TROUBLESHOOTING
+════════════════════════════════════════════════ -->
+<h2 id="trouble">✦ Troubleshooting <span class="h2-ar">استكشاف الأخطاء</span></h2>
 
-# Check port
+<div class="tw"><table>
+  <thead><tr><th>Symptom</th><th>Resolution</th></tr></thead>
+  <tr><td>"No functions found"</td><td>Verify the path contains <code>.c</code> files. Run <strong>Diagnostics</strong> in the launcher menu to test the parser directly.</td></tr>
+  <tr><td>Graph shows nodes but 0 edges</td><td>tree-sitter parsed files but found no call expressions. Confirm <code>tree-sitter-c</code> is installed and the Diagnostics parse test passes.</td></tr>
+  <tr><td>PNG export is black</td><td>Use SVG. For PNG: open the SVG in Inkscape and export from there.</td></tr>
+  <tr><td>Session not restored on reload</td><td>Enable localStorage in browser settings. Private/incognito mode disables it.</td></tr>
+  <tr><td>Port 7411 already in use</td><td>Choose <strong>[3] Port settings</strong> in the launcher to kill the blocking process or switch to a different port.</td></tr>
+  <tr><td>Nodes clipped at canvas edge</td><td>Press <code>F</code> or click <strong>Fit</strong> — the layout auto-centres.</td></tr>
+  <tr><td>tree-sitter import error</td><td><code>pip install tree-sitter tree-sitter-c</code> — both packages are required.</td></tr>
+  <tr><td>tree-sitter installed but parse fails</td><td><code>pip install --upgrade tree-sitter tree-sitter-c</code> — version mismatch between the two packages is the most common cause.</td></tr>
+  <tr><td>Graph too slow (500+ visible nodes)</td><td>Set Depth slider to 2–3, or use Trace mode on one function.</td></tr>
+  <tr><td>Races panel does not appear</td><td>No ISR-named functions writing shared globals were found — may be correct. Check ISR naming conventions.</td></tr>
+  <tr><td>RTOS panel does not appear</td><td>RTOS APIs not called directly by name. May be macro-wrapped or project uses a different RTOS.</td></tr>
+  <tr><td>Periph panel does not appear</td><td>No <code>PERIPH-&gt;REG</code> access patterns found. May be HAL-wrapped or a non-STM32 target.</td></tr>
+</table></div>
+
+<h3>Quick diagnostic commands</h3>
+<pre># Verify all Python dependencies
+python3 -c "import flask; import tree_sitter; import tree_sitter_c; print('All OK')"
+
+# Test the parser directly
+python3 -c "
+import tree_sitter_c as tsc
+from tree_sitter import Language, Parser
+p = Parser(Language(tsc.language()))
+t = p.parse(b'volatile int x = 0; void ISR_foo(void){ x++; }')
+fns = [n for n in t.root_node.children if n.type == 'function_definition']
+print(f'Parse OK: {len(fns)} function(s) found')
+"
+
+# Check what is on the port
 lsof -i :7411
 
-# Check dependencies  
-which cflow ctags dot gawk</pre>
+# Confirm the analyzer runs standalone
+python3 -c "
+import sys; sys.path.insert(0, '.')
+from analyzer import analyze_project, TS_AVAILABLE
+from pathlib import Path
+print('TS_AVAILABLE:', TS_AVAILABLE)
+"</pre>
 
+
+<!-- ════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════ -->
 <div class="footer">
-  ✦ Callgraph Studio v1.0.0 &nbsp;·&nbsp; Built for C &nbsp;·&nbsp; Runs locally &nbsp;·&nbsp; No telemetry
-  <br><br>
-  <a href="index.html">← Back to App</a>
+  <!-- Minaret silhouette — Medinan architecture -->
+  <div class="footer-minaret">
+    <svg viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="38" y="50" width="24" height="28" rx="1" fill="#c9a84c" fill-opacity=".12" stroke="#c9a84c" stroke-width=".8" stroke-opacity=".5"/>
+      <rect x="42" y="34" width="16" height="18" rx="1" fill="#c9a84c" fill-opacity=".12" stroke="#c9a84c" stroke-width=".7" stroke-opacity=".5"/>
+      <rect x="45" y="24" width="10" height="12" rx="1" fill="#c9a84c" fill-opacity=".12" stroke="#c9a84c" stroke-width=".6" stroke-opacity=".5"/>
+      <path d="M50 8 L54 20 L46 20 Z" fill="#c9a84c" fill-opacity=".3" stroke="#c9a84c" stroke-width=".6"/>
+      <circle cx="50" cy="7" r="2.5" fill="#c9a84c" fill-opacity=".6"/>
+      <!-- crescent -->
+      <path d="M50 3 A4 4 0 1 1 54 6 A2.5 2.5 0 1 0 50 3 Z" fill="#c9a84c" fill-opacity=".5"/>
+    </svg>
+  </div>
+
+  <div class="footer-ar">وَقُل رَّبِّ زِدْنِى عِلْمًا</div>
+  <div class="footer-tr">"And say: My Lord, increase me in knowledge." — Quran 20:114</div>
+  <div class="footer-meta">
+    ✦ &nbsp; Callgraph Studio v1.0.0 &nbsp;·&nbsp; MIT License
+    &nbsp;·&nbsp; Runs entirely locally &nbsp;·&nbsp; No telemetry &nbsp;·&nbsp; 64 / 64 tests passing
+  </div>
+  <div class="footer-nav">
+    <a href="index.html">← Back to App</a>
+    <a href="README.md">README</a>
+  </div>
 </div>
 
-</div>
+</div><!-- /page -->
 </body>
 </html>
