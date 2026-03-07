@@ -530,7 +530,7 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
     <span class="bism-ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</span>
     <div class="bism-rule"><span class="bism-gem">✦</span></div>
     <div class="bism-title">Callgraph Studio</div>
-    <div class="bism-sub">C · Interactive Call Graph Explorer&nbsp;v2.1.0</div>
+    <div class="bism-sub">C · Interactive Call Graph Explorer&nbsp;v2.2.0</div>
   </div>
   <div id="restore-banner" style="display:none;align-items:center;gap:.7rem;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:.65rem 1rem;margin-bottom:.8rem;font-size:.78rem;">
     <span style="color:var(--text3)">↩</span>
@@ -722,6 +722,7 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
         <button class="gbtn" id="btn-report"  onclick="generateReport()" title="Generate handover report" style="color:#f59e0b">📋 Report</button>
         <button class="gbtn" id="btn-watch"   onclick="toggleWatch()"    title="Watch for file changes">👁 Watch</button>
         <button class="gbtn" id="btn-docs"    onclick="showDocsMenu()"   title="Generate function docs">📑 Docs</button>
+        <button class="gbtn" id="btn-datadeps" onclick="generateDataDeps()" title="Generate data dependencies report">📊 Data</button>
         <div class="gbar-sep"></div>
         <button class="gbtn" id="btn-globals" onclick="openGlobals()" title="Global variable dependencies" style="color:#22c55e">Globals</button>
         <button class="gbtn" id="btn-races"   onclick="openRaces()"   title="Race condition candidates"   style="color:#ef6548">Races</button>
@@ -4753,6 +4754,40 @@ async function generateDocs(mode){
     toast('Docs error: '+e.message,'error');
   }finally{
     btn.disabled=false; btn.textContent='📑 Docs';
+  }
+}
+
+// ══ DATA DEPS GENERATOR ═════════════════════════════════════
+async function generateDataDeps(){
+  if(!G){ toast('Index a project first','error'); return; }
+  const btn = document.getElementById('btn-datadeps');
+  btn.disabled=true; btn.textContent='⏳';
+  toast('Generating data dependencies…');
+  try{
+    const r = await fetch('/api/data-deps',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(G),
+    });
+    if(!r.ok){
+      const text = await r.text();
+      let msg = r.statusText;
+      try{const j=JSON.parse(text);msg=j.error||msg;}catch(e){msg=text.slice(0,200);}
+      toast('Data deps failed: '+msg,'error');
+      console.error('Data deps error:', text);
+      return;
+    }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const name = (G.source||'project').split('/').pop();
+    a.download = name+'-data-deps.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(a.href);},100);
+    toast('Data deps downloaded ✓','ok');
+  }catch(e){
+    toast('Data deps error: '+e.message,'error');
+  }finally{
+    btn.disabled=false; btn.textContent='📊 Data';
   }
 }
 

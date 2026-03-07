@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Callgraph Studio v2.1.0 — Full Automated Test Suite
+Callgraph Studio v2.2.0 — Full Automated Test Suite
 
 Tests:
   - Python syntax (server.py, analyzer.py)
@@ -107,7 +107,7 @@ required_ids = [
     "fn-list", "fn-search", "analysis-result",
     "info", "info-name", "info-body",
     "globals-panel", "race-panel", "rtos-panel", "periph-panel",
-    # v2.1.0 additions
+    # v2.2.0 additions
     "tracedir-sect", "mod-legend", "source-panel", "src-panel-title",
     "src-panel-body", "bookmarks-panel", "bookmarks-body",
     "btn-bookmarks", "ana-diff-btn",
@@ -132,7 +132,7 @@ required_fns = [
     "traceFunction", "clearTrace", "showInfo", "closeInfo",
     "setMode", "onDepth", "toggleExt", "buildFnList", "filterFns",
     "saveSession", "loadSession", "restoreSessionYes", "newIndex",
-    # v2.1.0 additions
+    # v2.2.0 additions
     "setTraceDir",       # trace direction toggle
     "toggleBookmark", "openBookmarks", "closeBookmarks",
     "renderBookmarks", "isBookmarked", "loadBookmarks",
@@ -226,7 +226,7 @@ required_routes = [
     ("/api/cancel/", "POST"),
     ("/api/runs", "GET"),
     ("/api/index", "POST"),
-    ("/api/source", "GET"),  # v2.1.0
+    ("/api/source", "GET"),  # v2.2.0
     ("/favicon.ico", "GET"),
 ]
 
@@ -659,9 +659,9 @@ except Exception as e:
 
 
 # ══════════════════════════════════════════════════════════════
-# 12. v2.1.0 FEATURE-SPECIFIC TESTS
+# 12. v2.2.0 FEATURE-SPECIFIC TESTS
 # ══════════════════════════════════════════════════════════════
-section("12. v2.1.0 feature checks")
+section("12. v2.2.0 feature checks")
 
 # Stack depth: memoized DFS (not exponential)
 if "const _memo = {}" in js_code and "function dfs(node)" in js_code:
@@ -812,8 +812,8 @@ elif "fnModCol+'12'" in js_code:
 else:
     fail("Module color: no alpha fill found")
 
-# ── v2.1.0 features ─────────────────────────────────────────
-section("12b. v2.1.0 features")
+# ── v2.2.0 features ─────────────────────────────────────────
+section("12b. v2.2.0 features")
 
 # RTOS ISR interaction diagram
 if "function buildRtosInteractionDiagram(" in js_code:
@@ -909,10 +909,10 @@ else:
     fail("Server: system paths not blocked")
 
 # Version check
-if "v2.1.0" in html:
-    ok("Version: v2.1.0 in index.html")
+if "v2.2.0" in html:
+    ok("Version: v2.2.0 in index.html")
 else:
-    fail("Version: v2.1.0 not found in index.html")
+    fail("Version: v2.2.0 not found in index.html")
 
 
 # ══════════════════════════════════════════════════════════════

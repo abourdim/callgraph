@@ -558,6 +558,27 @@ def api_docs():
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
 # ── Live file watcher ────────────────────────────────────────
+
+# ── Data dependencies report ─────────────────────────────────
+@app.route("/api/data-deps", methods=["POST"])
+def api_data_deps():
+    graph = request.get_json(force=True, silent=True)
+    if not graph or 'nodes' not in graph:
+        return jsonify({"error": "invalid graph data"}), 400
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("deps_gen", str(BASE_DIR / "deps" / "generator.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        html = mod.build_data_deps(graph)
+        proj_name = Path(graph.get('source','project')).name
+        return Response(html, mimetype="text/html",
+                       headers={"Content-Disposition": f"attachment; filename={proj_name}-data-deps.html"})
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
+
+# ── Live file watcher (original) ─────────────────────────────
 _watch_state = {"active": False, "path": None, "stream_id": None, "snapshot": {}}
 
 def _file_snapshot(src_path):
