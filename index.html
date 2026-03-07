@@ -246,12 +246,12 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
 .fb-cn{padding:.3rem .65rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text2);font-size:.73rem;cursor:pointer}
 
 /* ── Global var / Race / RTOS / Periph panels ── */
-#globals-panel,#race-panel,#rtos-panel,#periph-panel{
+#globals-panel,#race-panel,#rtos-panel,#periph-panel,#bookmarks-panel{
   position:absolute;top:0;right:0;bottom:0;width:310px;
   background:var(--bg2);border-left:1px solid var(--border);
   display:none;flex-direction:column;z-index:8;overflow:hidden;
 }
-#globals-panel.open,#race-panel.open,#rtos-panel.open,#periph-panel.open{display:flex;}
+#globals-panel.open,#race-panel.open,#rtos-panel.open,#periph-panel.open,#bookmarks-panel.open{display:flex;}
 .side-panel-hdr{padding:.75rem 1rem .6rem;border-bottom:1px solid var(--border);
   display:flex;align-items:center;gap:.5rem;flex-shrink:0}
 .side-panel-title{font-size:.72rem;font-weight:600;letter-spacing:.07em;
@@ -449,6 +449,39 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* trace direction pills */
+.tdir-pills{display:flex;gap:2px;background:var(--bg);border-radius:6px;padding:2px;border:1px solid var(--border)}
+.tdir-pill{flex:1;padding:.25rem 0;border:none;background:none;color:var(--text3);font-size:.65rem;border-radius:4px;cursor:pointer;transition:all .15s;font-family:inherit}
+.tdir-pill:hover{color:var(--text2)}
+.tdir-pill.active{background:var(--bg3);color:var(--accent);font-weight:500}
+
+/* module legend */
+.mod-legend{position:absolute;bottom:8px;left:8px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:.35rem .55rem;font-size:.58rem;z-index:20;max-height:200px;overflow-y:auto;display:none;gap:.25rem;flex-direction:column}
+.mod-legend.on{display:flex}
+.mod-legend-item{display:flex;align-items:center;gap:.35rem;white-space:nowrap}
+.mod-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* source panel */
+#source-panel{position:absolute;top:0;right:0;bottom:0;width:50%;min-width:360px;max-width:700px;background:var(--bg2);border-left:1px solid var(--border);z-index:30;display:none;flex-direction:column;overflow:hidden}
+#source-panel.on{display:flex}
+.src-hdr{display:flex;align-items:center;gap:.5rem;padding:.5rem .75rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.src-title{font-size:.75rem;font-weight:500;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src-close{background:none;border:none;color:var(--text3);font-size:1rem;cursor:pointer;padding:0 .3rem}
+.src-close:hover{color:var(--text)}
+.src-body{flex:1;overflow:auto;font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:1.7}
+.src-line{display:flex;padding:0 .5rem;min-height:1.7em}
+.src-line:hover{background:var(--bg3)}
+.src-gutter{width:42px;text-align:right;color:var(--text3);padding-right:.6rem;flex-shrink:0;user-select:none}
+.src-code{flex:1;white-space:pre;overflow-x:hidden;text-overflow:ellipsis;color:var(--text)}
+.src-line.fn-def{background:#4a8fff0a}
+.src-line.fn-def .src-code{color:#4a8fff}
+.src-badge{display:inline-block;font-size:.55rem;border-radius:3px;padding:0 .3rem;margin-left:.4rem;vertical-align:middle}
+.src-badge.calls{background:#4a8fff22;color:#4a8fff}
+.src-badge.race{background:#ef654822;color:#ef6548}
+.src-badge.dead{background:#6b85a822;color:#6b85a8;text-decoration:line-through}
+.src-badge.periph{background:#d4a84322;color:#d4a843}
+.src-badge.isr{background:#a78bfa22;color:#a78bfa}
 </style>
 </head>
 <body>
@@ -459,7 +492,7 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
     <span class="bism-ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</span>
     <div class="bism-rule"><span class="bism-gem">✦</span></div>
     <div class="bism-title">Callgraph Studio</div>
-    <div class="bism-sub">C · Interactive Call Graph Explorer&nbsp;v1.2.0</div>
+    <div class="bism-sub">C · Interactive Call Graph Explorer&nbsp;v1.3.0</div>
   </div>
   <div id="restore-banner" style="display:none;align-items:center;gap:.7rem;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:.65rem 1rem;margin-bottom:.8rem;font-size:.78rem;">
     <span style="color:var(--text3)">↩</span>
@@ -525,6 +558,16 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
         </div>
       </div>
 
+      <!-- Trace Direction -->
+      <div class="sb-sect" id="tracedir-sect">
+        <span class="sb-lbl">Trace direction</span>
+        <div class="tdir-pills">
+          <button class="tdir-pill active" data-dir="both" onclick="setTraceDir('both')">Both</button>
+          <button class="tdir-pill" data-dir="down" onclick="setTraceDir('down')">↓ Down</button>
+          <button class="tdir-pill" data-dir="up" onclick="setTraceDir('up')">↑ Up</button>
+        </div>
+      </div>
+
       <!-- Style -->
       <div class="sb-sect">
         <span class="sb-lbl">Style</span>
@@ -569,6 +612,7 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
           <button class="ana-btn" id="ana-path-btn"   onclick="showPathUI()">⇢ Path find</button>
           <button class="ana-btn" id="ana-cycle-btn"  onclick="runCycleDetect()">↻ Cycles</button>
           <button class="ana-btn" id="ana-stack-btn"  onclick="runStackDepth()">⬆ Stack depth</button>
+          <button class="ana-btn" id="ana-diff-btn"   onclick="runDiff()">⚖ Diff</button>
         </div>
         <div id="analysis-result"></div>
       </div>
@@ -620,6 +664,7 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
         <button class="gbtn" id="btn-races"   onclick="openRaces()"   title="Race condition candidates"   style="color:#ef6548">Races</button>
         <button class="gbtn" id="btn-rtos"    onclick="openRtos()"    title="RTOS architecture"           style="color:#a78bfa">RTOS</button>
         <button class="gbtn" id="btn-periph"  onclick="openPeriph()"  title="Hardware peripheral map"     style="color:#d4a843">Periph</button>
+        <button class="gbtn" id="btn-bookmarks" onclick="openBookmarks()" title="Bookmarked functions" style="color:#f59e0b">★</button>
         <button class="gbtn" id="btn-reset-trace" onclick="clearTrace()" style="display:none">✕ Trace</button>
       </div>
 
@@ -636,6 +681,7 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
             <div id="minimap-viewport"></div>
           </div>
         </div>
+        <div id="mod-legend" class="mod-legend"></div>
         <div id="canvas-empty">
           <div class="ce-icon">◈</div>
           <div class="ce-text">Graph will appear here</div>
@@ -680,6 +726,24 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
           <button class="side-panel-close" onclick="closePeriph()">✕</button>
         </div>
         <div class="side-panel-body" id="periph-body"></div>
+      </div>
+
+      <!-- Source annotation panel -->
+      <div id="source-panel">
+        <div class="src-hdr">
+          <span class="src-title" id="src-panel-title">—</span>
+          <button class="src-close" onclick="closeSource()">✕</button>
+        </div>
+        <div class="src-body" id="src-panel-body"></div>
+      </div>
+
+      <!-- Bookmarks panel -->
+      <div id="bookmarks-panel">
+        <div class="side-panel-hdr">
+          <span class="side-panel-title" style="color:#f59e0b">★ Bookmarks</span>
+          <button class="side-panel-close" onclick="closeBookmarks()">✕</button>
+        </div>
+        <div class="side-panel-body" id="bookmarks-body"></div>
       </div>
 
       <!-- Node info panel -->
@@ -741,6 +805,7 @@ let _wasDragged = false;
 let fbCur='/', fbSel='/';
 let acIdx = -1;
 let collapsedNodes = new Set();  // nodes whose subtrees are hidden
+let traceDir = 'both';  // 'both' | 'down' | 'up'
 
 const STYLES = [
   {id:'default',  c:'#4a8fff'}, {id:'heat',   c:'#ef6548'},
@@ -860,7 +925,15 @@ function enterApp(src){
   document.getElementById('btn-rtos').style.display    = (G.rtos&&Object.keys(G.rtos.tasks||{}).length) ? '' : 'none';
   document.getElementById('btn-periph').style.display  = (G.peripherals&&Object.keys(G.peripherals).length) ? '' : 'none';
   buildFnList();
-  renderGraph();
+  // Auto-trace main or first entry point on startup
+  const autoTarget = G.nodes.find(n=>n.id==='main') || G.nodes.find(n=>n.is_entry && n.type==='project');
+  if(autoTarget && G.nodes.length > 20){
+    depth=3; document.getElementById('depth').value=3; document.getElementById('dv').textContent='3';
+    traceFunction(autoTarget.id, true);
+    toast(`Traced from ${autoTarget.id} — clear to see full graph`,'ok');
+  } else {
+    renderGraph();
+  }
 }
 
 // ══ SESSION PERSISTENCE ════════════════════════════════════════
@@ -959,6 +1032,15 @@ function toggleExt(){
   if(!G){ document.getElementById('btn-ext').classList.toggle('active',showExt); return; }
   document.getElementById('btn-ext').classList.toggle('active',showExt);
   renderGraph();
+}
+
+// ══ TRACE DIRECTION ═══════════════════════════════════════════
+function setTraceDir(dir){
+  traceDir=dir;
+  document.querySelectorAll('.tdir-pill').forEach(p=>{
+    p.classList.toggle('active', p.dataset.dir===dir);
+  });
+  if(tracedFn) renderGraph();
 }
 
 // ══ FUNCTION LIST ═════════════════════════════════════════════
@@ -1149,6 +1231,7 @@ function toggleDir(){
 
 function clearCanvas(){
   document.getElementById('gbar-legend').style.display='none';
+  document.getElementById('mod-legend').classList.remove('on');
   const c=document.getElementById('canvas');
   const svg=c.querySelector('svg'); if(svg) svg.remove();
   document.getElementById('canvas-empty').style.display='flex';
@@ -1182,20 +1265,23 @@ function buildVisibleGraph(){
   let visEdges = [];  // {from, to}
 
   if(tracedFn){
-    // BFS ancestors (max 3 levels up to avoid showing entire codebase)
+    // BFS ancestors (max 3 levels up) — skip if traceDir is 'down'
     const anc = new Set();
-    let q=[[tracedFn,0]];
-    while(q.length){ const [n,d]=q.pop(); (callers[n]||[]).forEach(c=>{ if(!anc.has(c)&&d<3){anc.add(c);q.push([c,d+1]);} }); }
-    // BFS descendants
+    if(traceDir !== 'down'){
+      let q=[[tracedFn,0]];
+      while(q.length){ const [n,d]=q.pop(); (callers[n]||[]).forEach(c=>{ if(!anc.has(c)&&d<3){anc.add(c);q.push([c,d+1]);} }); }
+    }
+    // BFS descendants — skip if traceDir is 'up'
     const desc = new Set();
-    q=[tracedFn];
-    while(q.length){ const n=q.pop(); (edges[n]||[]).forEach(c=>{ if(!desc.has(c)){desc.add(c);q.push(c);} }); }
-    // limit by depth
-    if(depth>0){
-      // re-BFS with depth limit
-      const descD=new Set(); q=[[tracedFn,0]];
-      while(q.length){ const [n,d]=q.pop(); if(d>=depth) continue; (edges[n]||[]).forEach(c=>{ if(!descD.has(c)){descD.add(c);q.push([c,d+1]);} }); }
-      desc.forEach(n=>{ if(!descD.has(n)) desc.delete(n); });
+    if(traceDir !== 'up'){
+      let q=[tracedFn];
+      while(q.length){ const n=q.pop(); (edges[n]||[]).forEach(c=>{ if(!desc.has(c)){desc.add(c);q.push(c);} }); }
+      // limit by depth
+      if(depth>0){
+        const descD=new Set(); let q2=[[tracedFn,0]];
+        while(q2.length){ const [n,d]=q2.pop(); if(d>=depth) continue; (edges[n]||[]).forEach(c=>{ if(!descD.has(c)){descD.add(c);q2.push([c,d+1]);} }); }
+        desc.forEach(n=>{ if(!descD.has(n)) desc.delete(n); });
+      }
     }
     visNodes=new Set([tracedFn,...anc,...desc]);
     // edges within visible
@@ -1293,7 +1379,7 @@ function layoutGraph(visNodes, visEdges, dir='LR', roles={}){
   nodeArr.forEach(n=>{ const l=layer[n]; if(!byLayer[l]) byLayer[l]=[]; byLayer[l].push(n); });
 
   // Assign positions — center each column vertically
-  const NW=150, NH=36, HGAP=60, VGAP=16, MPAD=40;
+  const NW=150, NH=46, HGAP=60, VGAP=16, MPAD=40;
   const pos={};
   const layerNums=Object.keys(byLayer).map(Number).sort((a,b)=>a-b);
   // Find max column height to center columns
@@ -1337,6 +1423,29 @@ function renderFnGraph(){
   const pos = layoutGraph(visNodes, visEdges, layoutDir, roles);
   const col = NODE_COLORS[selStyle]||NODE_COLORS.default;
 
+  // Module color palette
+  const MOD_PALETTE = [
+    '#4a8fff','#22c55e','#ef6548','#a78bfa','#d4a843','#06b6d4',
+    '#f472b6','#fb923c','#84cc16','#e879f9','#38bdf8','#fbbf24',
+    '#34d399','#f87171','#818cf8','#c084fc','#2dd4bf','#facc15',
+  ];
+  const modSet = new Set();
+  visNodes.forEach(fn=>{ const n=G.nodes.find(x=>x.id===fn); if(n && n.mod && n.mod!=='external') modSet.add(n.mod); });
+  const modList = [...modSet].sort();
+  const modColor = {};
+  modList.forEach((m,i)=>{ modColor[m] = MOD_PALETTE[i % MOD_PALETTE.length]; });
+
+  // Build and show module legend
+  const legendEl = document.getElementById('mod-legend');
+  if(modList.length > 1){
+    legendEl.innerHTML = modList.map(m=>
+      `<div class="mod-legend-item"><span class="mod-legend-dot" style="background:${modColor[m]}"></span><span style="color:var(--text2)">${m}</span></div>`
+    ).join('');
+    legendEl.classList.add('on');
+  } else {
+    legendEl.classList.remove('on');
+  }
+
   // Calc canvas size
   const xs=Object.values(pos).map(p=>p.x), ys=Object.values(pos).map(p=>p.y);
   if(!xs.length){ hideLoading(); return; }
@@ -1366,7 +1475,7 @@ function renderFnGraph(){
   svg.appendChild(defs);
 
   // Edges first — with fan-out bundling
-  const NW=150, NH=36;
+  const NW=150, NH=46;
   const edgeG=document.createElementNS(svgNS,'g');
 
   // Group edges by source for fan-out detection
@@ -1428,6 +1537,8 @@ function renderFnGraph(){
     const meta=G.nodes.find(x=>x.id===fn)||{type:'external'};
     const role=roles[fn]||'';
     const isFocused=role==='focused'||fn===focusedFn;
+    const fnMod = meta.mod || meta.module || 'external';
+    const fnModCol = modColor[fnMod] || null;
 
     const g=document.createElementNS(svgNS,'g');
     g.setAttribute('transform',`translate(${p.x},${p.y})`);
@@ -1435,10 +1546,12 @@ function renderFnGraph(){
     g.style.cursor='pointer';
 
     const rect=document.createElementNS(svgNS,'rect');
-    rect.setAttribute('width','150');rect.setAttribute('height','36');
+    rect.setAttribute('width','150');rect.setAttribute('height','46');
     rect.setAttribute('rx','6');rect.setAttribute('ry','6');
 
     let fill=col.fill, stroke=col.stroke, sw=1.5;
+    // Module color as default stroke when available
+    if(fnModCol && meta.type!=='external'){ stroke=fnModCol; fill=fnModCol+'12'; }
     if(meta.type==='external'){ fill='#0e1420'; stroke='#2d3d55'; sw=1; }
     if(meta.type==='macro'){ fill='#1a180a'; stroke='#d4a843'; }
     if(role==='caller'){ fill='#2a0d0d'; stroke='#ef6548'; sw=2; }
@@ -1449,7 +1562,7 @@ function renderFnGraph(){
     g.appendChild(rect);
 
     const text=document.createElementNS(svgNS,'text');
-    text.setAttribute('x','75');text.setAttribute('y','22');
+    text.setAttribute('x','75');text.setAttribute('y','18');
     text.setAttribute('text-anchor','middle');text.setAttribute('dominant-baseline','middle');
     text.setAttribute('font-size','10');text.setAttribute('font-family',"'JetBrains Mono',monospace");
     const textCol = role==='caller'?'#ffc0a0':role==='callee'?'#a0ffc0':isFocused?'#ffffff':
@@ -1460,6 +1573,19 @@ function renderFnGraph(){
     const label=fn.length>MAXCH?fn.slice(0,MAXCH-2)+'…':fn;
     text.textContent=label;
     g.appendChild(text);
+
+    // Module label (second line)
+    if(fnMod && fnMod !== 'external' && fnMod !== '.'){
+      const modText=document.createElementNS(svgNS,'text');
+      modText.setAttribute('x','75');modText.setAttribute('y','34');
+      modText.setAttribute('text-anchor','middle');modText.setAttribute('dominant-baseline','middle');
+      modText.setAttribute('font-size','7.5');modText.setAttribute('font-family',"'JetBrains Mono',monospace");
+      modText.setAttribute('fill', fnModCol || '#4a6080');
+      modText.setAttribute('opacity','0.7');modText.setAttribute('pointer-events','none');
+      const modLabel = fnMod.length > 20 ? fnMod.slice(0,18)+'…' : fnMod;
+      modText.textContent = modLabel;
+      g.appendChild(modText);
+    }
 
     // Hover label expansion: show full name in a floating rect above node
     if(fn.length>MAXCH){
@@ -2022,7 +2148,9 @@ function showInfo(fn){
     ${callee_list.length?`<div class="info-sect">Calls</div>`+callee_list.map(c=>`<div class="info-fn" onclick="traceFunction('${c}')">${c}</div>`).join('')+(moreCallees>0?`<div class="info-fn" style="color:var(--text3);font-style:italic" onclick="showAllCallees('${fn}')">+${moreCallees} more…</div>`:''):''}
     <div style="display:flex;gap:.35rem;margin-top:.5rem">
       <button class="info-trace-btn" style="flex:1" onclick="traceFunction('${fn}')">◈ Trace</button>
+      <button class="info-trace-btn" style="flex:0;padding:.3rem .55rem;font-size:.65rem;color:${isBookmarked(fn)?'#f59e0b':'var(--text3)'}" onclick="toggleBookmark('${fn}');showInfo('${fn}')" title="${isBookmarked(fn)?'Remove bookmark':'Bookmark'}">★</button>
       <button class="info-trace-btn" style="flex:0;padding:.3rem .55rem;font-size:.65rem" onclick="navigator.clipboard.writeText('${fn}').then(()=>toast('Copied ✓','ok'))" title="Copy name">⎘</button>
+      ${meta.file?`<button class="info-trace-btn" style="flex:0;padding:.3rem .55rem;font-size:.65rem" onclick="openSource('${meta.file}')" title="View source">📄</button>`:''}
     </div>
   `;
   document.getElementById('info').classList.add('open');
@@ -2192,7 +2320,7 @@ function renderMultiTrace(visNodes, visEdges, roles, a, b, sharedCount){
 
       // Edges
       const edgeG=document.createElementNS(svgNS,'g');
-      const NW=150,NH=36;
+      const NW=150,NH=46;
       visEdges.forEach(e=>{
         const p1=pos[e.from],p2=pos[e.to]; if(!p1||!p2) return;
         const path=document.createElementNS(svgNS,'path');
@@ -2218,7 +2346,7 @@ function renderMultiTrace(visNodes, visEdges, roles, a, b, sharedCount){
         g.setAttribute('data-fn',fn);
         g.style.cursor='pointer';
         const rect=document.createElementNS(svgNS,'rect');
-        rect.setAttribute('width','150');rect.setAttribute('height','36');
+        rect.setAttribute('width','150');rect.setAttribute('height','46');
         rect.setAttribute('rx','6');rect.setAttribute('ry','6');
         let fill='#111e30', stroke='#2d4a6a', sw=1;
         if(role==='mt-a'){fill='#0d1a2a';stroke='#4a8fff';sw=2.5;}
@@ -2267,9 +2395,9 @@ function clearMultiTrace(){
 // ══════════════════════════════════════════════════════════════
 
 function anaSetActive(id){
-  ['ana-dead-btn','ana-impact-btn','ana-heat-btn','ana-path-btn']
-    .forEach(b=>document.getElementById(b).classList.remove('active'));
-  if(id) document.getElementById(id).classList.add('active');
+  ['ana-dead-btn','ana-impact-btn','ana-heat-btn','ana-path-btn','ana-cycle-btn','ana-stack-btn','ana-diff-btn']
+    .forEach(b=>{ const el=document.getElementById(b); if(el) el.classList.remove('active'); });
+  if(id){ const el=document.getElementById(id); if(el) el.classList.add('active'); }
 }
 function anaResult(html){
   document.getElementById('analysis-result').innerHTML=html;
@@ -2478,16 +2606,27 @@ function runStackDepth(){
     </div>`); return;
   }
 
-  // DFS to find longest path (detect and skip cycles)
+  // Memoized DFS longest path — O(V+E) per entry via DP cache
+  const _memo = {};  // node → {depth, chain}
   function longestPath(start){
-    let best=[start];
-    function dfs(node, path, visited){
-      const callees=(G.edges[node]||[]).filter(c=>!visited.has(c));
-      if(!callees.length){ if(path.length>best.length) best=[...path]; return; }
-      callees.forEach(c=>{ visited.add(c); path.push(c); dfs(c,path,visited); path.pop(); visited.delete(c); });
+    const onStack = new Set();
+    function dfs(node){
+      if(_memo[node]) return _memo[node];
+      if(onStack.has(node)) return {depth:0, chain:[node]}; // cycle break
+      onStack.add(node);
+      const callees = (G.edges[node]||[]);
+      let best = {depth:0, chain:[node]};
+      for(const c of callees){
+        const sub = dfs(c);
+        if(sub.depth + 1 > best.depth){
+          best = {depth: sub.depth + 1, chain: [node, ...sub.chain]};
+        }
+      }
+      onStack.delete(node);
+      _memo[node] = best;
+      return best;
     }
-    dfs(start,[start],new Set([start]));
-    return best;
+    return dfs(start).chain;
   }
 
   const results=entries.map(e=>({entry:e.id, path:longestPath(e.id)}))
@@ -2860,7 +2999,7 @@ function showPathInGraph(idx){
       po.setAttribute('points','0 0,8 3,0 6');po.setAttribute('fill','#4a8fff');
       mk.appendChild(po);defs.appendChild(mk);svg.appendChild(defs);
       // Edges
-      const NW=150,NH=36;
+      const NW=150,NH=46;
       visEdges.forEach(e=>{
         const p1=pos[e.from],p2=pos[e.to];if(!p1||!p2)return;
         const path2=document.createElementNS(svgNS,'path');
@@ -2878,7 +3017,7 @@ function showPathInGraph(idx){
         g.setAttribute('transform',`translate(${p.x},${p.y})`);
         g.setAttribute('data-fn',fn);g.style.cursor='pointer';
         const rect=document.createElementNS(svgNS,'rect');
-        rect.setAttribute('width','150');rect.setAttribute('height','36');rect.setAttribute('rx','6');
+        rect.setAttribute('width','150');rect.setAttribute('height','46');rect.setAttribute('rx','6');
         const isEnd=(i===0||i===path.length-1);
         rect.setAttribute('fill',isEnd?'#0d1a2a':'#111e30');
         rect.setAttribute('stroke',isEnd?'#4a8fff':'#2d4a6a');
@@ -2915,6 +3054,264 @@ function showPathInGraph(idx){
 }
 
 
+// ══ BOOKMARKS ═════════════════════════════════════════════════
+let _bookmarks = new Set();
+
+function loadBookmarks(){
+  try{
+    const raw = localStorage.getItem('cg_bookmarks');
+    if(raw) _bookmarks = new Set(JSON.parse(raw));
+  }catch(e){}
+}
+function saveBookmarks(){
+  try{ localStorage.setItem('cg_bookmarks', JSON.stringify([..._bookmarks])); }catch(e){}
+}
+function toggleBookmark(fn){
+  if(_bookmarks.has(fn)){ _bookmarks.delete(fn); toast(`Removed bookmark: ${fn}`); }
+  else { _bookmarks.add(fn); toast(`Bookmarked: ${fn}`,'ok'); }
+  saveBookmarks();
+  updateBookmarkBadge();
+  // Refresh bookmarks panel if open
+  if(document.getElementById('bookmarks-panel').classList.contains('open')) renderBookmarks();
+}
+function isBookmarked(fn){ return _bookmarks.has(fn); }
+function updateBookmarkBadge(){
+  const btn = document.getElementById('btn-bookmarks');
+  btn.textContent = _bookmarks.size ? `★ ${_bookmarks.size}` : '★';
+}
+function openBookmarks(){
+  renderBookmarks();
+  document.getElementById('bookmarks-panel').classList.add('open');
+}
+function closeBookmarks(){ document.getElementById('bookmarks-panel').classList.remove('open'); }
+function renderBookmarks(){
+  const body = document.getElementById('bookmarks-body');
+  if(!_bookmarks.size){
+    body.innerHTML = '<div style="padding:1rem;color:var(--text3);font-size:.7rem;text-align:center">No bookmarks yet.<br>Star functions from the info panel or context menu.</div>';
+    return;
+  }
+  let html = `<div style="padding:.4rem .6rem;display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:.6rem;color:var(--text3)">${_bookmarks.size} bookmarked</span>
+    <button class="ana-btn" style="font-size:.55rem;padding:.15rem .4rem" onclick="exportBookmarks()">Export</button>
+  </div>`;
+  [..._bookmarks].sort().forEach(fn=>{
+    const meta = G ? G.nodes.find(n=>n.id===fn) : null;
+    const mod = meta ? (meta.mod||meta.module||'') : '';
+    html += `<div class="dead-item" style="display:flex;align-items:center;gap:.3rem">
+      <span class="di-fn" style="flex:1;cursor:pointer" onclick="traceFunction('${fn}')">${fn}</span>
+      ${mod?`<span style="font-size:.55rem;color:var(--text3)">${mod}</span>`:''}
+      <span style="cursor:pointer;color:#f59e0b;font-size:.8rem" onclick="toggleBookmark('${fn}')" title="Remove bookmark">★</span>
+    </div>`;
+  });
+  body.innerHTML = html;
+}
+function exportBookmarks(){
+  const data = JSON.stringify([..._bookmarks], null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download = 'callgraph-bookmarks.json'; a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Bookmarks exported','ok');
+}
+
+// Load bookmarks on startup
+loadBookmarks();
+
+// ══ SOURCE ANNOTATION VIEW ════════════════════════════════════
+async function openSource(filePath){
+  if(!G||!filePath) return;
+  const panel = document.getElementById('source-panel');
+  const body  = document.getElementById('src-panel-body');
+  const title = document.getElementById('src-panel-title');
+  title.textContent = filePath;
+  body.innerHTML = '<div style="padding:1rem;color:var(--text3)">Loading…</div>';
+  panel.classList.add('on');
+
+  try{
+    const r = await fetch(`/api/source?file=${encodeURIComponent(filePath)}&root=${encodeURIComponent(G.source)}`);
+    const d = await r.json();
+    if(d.error){ body.innerHTML=`<div style="padding:1rem;color:#ef6548">${d.error}</div>`; return; }
+
+    // Build function line map from graph data
+    const fnAtLine = {};  // lineNum → node data
+    G.nodes.forEach(n=>{
+      if(n.file === filePath && n.line){
+        fnAtLine[n.line] = n;
+      }
+    });
+
+    // Dead code set
+    const deadFns = new Set();
+    if(window._deadFns) window._deadFns.forEach(fn=>deadFns.add(fn));
+    else {
+      // Quick dead code check: no callers and not entry/isr
+      G.nodes.forEach(n=>{
+        if(n.type==='project' && !n.is_isr && !n.is_entry && (n.in_degree||0)===0 && n.id!=='main')
+          deadFns.add(n.id);
+      });
+    }
+
+    // Race variable set for this file
+    const raceFns = new Set();
+    (G.races||[]).forEach(r=>{ raceFns.add(r.task_fn); r.isr_writers.forEach(w=>raceFns.add(w)); });
+
+    let html = '';
+    d.lines.forEach((line, i)=>{
+      const lineNum = i + 1;
+      const fn = fnAtLine[lineNum];
+      const cls = fn ? ' fn-def' : '';
+      let badges = '';
+      if(fn){
+        const calls = (fn.out_degree||0);
+        const callers = (fn.in_degree||0);
+        badges += `<span class="src-badge calls" title="calls ${calls}, called by ${callers}">${callers}↓ ${calls}→</span>`;
+        if(fn.is_isr) badges += `<span class="src-badge isr" title="ISR">⚡ISR</span>`;
+        if(deadFns.has(fn.id)) badges += `<span class="src-badge dead" title="Dead code">☠dead</span>`;
+        if(raceFns.has(fn.id)) badges += `<span class="src-badge race" title="Race candidate">⚠race</span>`;
+        if((fn.peripherals||[]).length) badges += `<span class="src-badge periph" title="Peripheral access">◈periph</span>`;
+      }
+      // Escape HTML
+      const escaped = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      html += `<div class="src-line${cls}" ${fn?`data-fn="${fn.id}" onclick="traceFunction('${fn.id}')" style="cursor:pointer"`:''}>` +
+        `<span class="src-gutter">${lineNum}</span>` +
+        `<span class="src-code">${escaped}${badges}</span></div>`;
+    });
+    body.innerHTML = html;
+
+    // Scroll to first function if available
+    const firstFn = body.querySelector('.fn-def');
+    if(firstFn) firstFn.scrollIntoView({block:'center'});
+
+  }catch(e){
+    body.innerHTML = `<div style="padding:1rem;color:#ef6548">${e.message}</div>`;
+  }
+}
+
+function closeSource(){
+  document.getElementById('source-panel').classList.remove('on');
+}
+
+// ══ DIFF MODE ═════════════════════════════════════════════════
+let _prevSnapshot = null;
+
+function saveDiffSnapshot(){
+  if(!G) return;
+  const snap = {
+    nodeIds: new Set(G.nodes.map(n=>n.id)),
+    edges: {},
+    ts: Date.now(),
+    source: G.source,
+    nodeCount: G.nodes.length,
+  };
+  for(const [k,v] of Object.entries(G.edges)) snap.edges[k] = [...v].sort();
+  _prevSnapshot = snap;
+  try{ localStorage.setItem('cg_diff_snap', JSON.stringify({
+    nodeIds: [...snap.nodeIds], edges: snap.edges, ts: snap.ts, source: snap.source, nodeCount: snap.nodeCount
+  })); }catch(e){}
+}
+
+function loadDiffSnapshot(){
+  if(_prevSnapshot) return _prevSnapshot;
+  try{
+    const raw = localStorage.getItem('cg_diff_snap');
+    if(!raw) return null;
+    const d = JSON.parse(raw);
+    d.nodeIds = new Set(d.nodeIds);
+    _prevSnapshot = d;
+    return d;
+  }catch(e){ return null; }
+}
+
+function runDiff(){
+  if(!G){ toast('Index a project first','error'); return; }
+  anaSetActive('ana-diff-btn');
+
+  const snap = loadDiffSnapshot();
+  if(!snap){
+    // No previous snapshot — offer to save current as baseline
+    anaResult(`<div class="analysis-panel">
+      <div class="analysis-title">⚖ Diff <button class="analysis-close" onclick="anaResult('');anaSetActive(null)">✕</button></div>
+      <div style="font-size:.7rem;color:var(--text2);margin:.5rem 0">No previous snapshot found. Save current graph as baseline, then re-index after making changes to see the diff.</div>
+      <button class="ana-btn" style="width:100%" onclick="saveDiffSnapshot();toast('Snapshot saved — re-index after changes to diff','ok');anaResult('');anaSetActive(null)">⚖ Save as baseline</button>
+    </div>`);
+    return;
+  }
+
+  // Compare current graph vs snapshot
+  const curIds = new Set(G.nodes.map(n=>n.id));
+  const prevIds = snap.nodeIds;
+
+  const added = [...curIds].filter(id=>!prevIds.has(id));
+  const removed = [...prevIds].filter(id=>!curIds.has(id));
+
+  // Changed edges: same function name but different callee set
+  const changed = [];
+  for(const fn of curIds){
+    if(!prevIds.has(fn)) continue;
+    const curE = (G.edges[fn]||[]).sort().join(',');
+    const prevE = (snap.edges[fn]||[]).sort().join(',');
+    if(curE !== prevE) changed.push(fn);
+  }
+
+  const total = added.length + removed.length + changed.length;
+
+  let html = `<div class="analysis-panel">
+    <div class="analysis-title">⚖ Diff vs snapshot <button class="analysis-close" onclick="anaResult('');anaSetActive(null)">✕</button></div>
+    <div class="ana-row"><span class="ana-key">Baseline</span><span class="ana-val">${snap.nodeCount} fns · ${new Date(snap.ts).toLocaleDateString()}</span></div>
+    <div class="ana-row"><span class="ana-key">Current</span><span class="ana-val">${G.nodes.length} fns</span></div>
+    <div class="ana-row"><span class="ana-key">Changes</span><span class="ana-val ${total?'warn':'ok'}">${total||'none'}</span></div>`;
+
+  if(added.length){
+    html += `<div class="sp-sect-title" style="margin:.5rem 0 .2rem;color:#22c55e">+ Added (${added.length})</div>`;
+    added.slice(0,20).forEach(fn=>{
+      html += `<div class="dead-item"><span class="di-fn" style="cursor:pointer;color:#22c55e" onclick="traceFunction('${fn}')">${fn}</span></div>`;
+    });
+    if(added.length>20) html += `<div style="font-size:.6rem;color:var(--text3)">…and ${added.length-20} more</div>`;
+  }
+  if(removed.length){
+    html += `<div class="sp-sect-title" style="margin:.5rem 0 .2rem;color:#ef6548">− Removed (${removed.length})</div>`;
+    removed.slice(0,20).forEach(fn=>{
+      html += `<div class="dead-item"><span class="di-fn" style="color:#ef6548">${fn}</span></div>`;
+    });
+    if(removed.length>20) html += `<div style="font-size:.6rem;color:var(--text3)">…and ${removed.length-20} more</div>`;
+  }
+  if(changed.length){
+    html += `<div class="sp-sect-title" style="margin:.5rem 0 .2rem;color:#f59e0b">~ Changed edges (${changed.length})</div>`;
+    changed.slice(0,20).forEach(fn=>{
+      const prevE = snap.edges[fn]||[];
+      const curE = G.edges[fn]||[];
+      const newEdges = curE.filter(e=>!prevE.includes(e));
+      const lostEdges = prevE.filter(e=>!curE.includes(e));
+      let detail = '';
+      if(newEdges.length) detail += `<span style="color:#22c55e">+${newEdges.slice(0,3).join(',')}</span> `;
+      if(lostEdges.length) detail += `<span style="color:#ef6548">-${lostEdges.slice(0,3).join(',')}</span>`;
+      html += `<div class="dead-item"><span class="di-fn" style="cursor:pointer;color:#f59e0b" onclick="traceFunction('${fn}')">${fn}</span><div style="font-size:.6rem;margin-top:.1rem">${detail}</div></div>`;
+    });
+    if(changed.length>20) html += `<div style="font-size:.6rem;color:var(--text3)">…and ${changed.length-20} more</div>`;
+  }
+
+  if(total){
+    html += `<button class="ana-btn" style="width:100%;margin-top:.5rem" onclick="highlightDiff(${JSON.stringify(added)},${JSON.stringify(removed)},${JSON.stringify(changed)})">Highlight in graph</button>`;
+  }
+  html += `<button class="ana-btn" style="width:100%;margin-top:.3rem" onclick="saveDiffSnapshot();toast('New snapshot saved','ok')">⚖ Update baseline</button>`;
+  html += '</div>';
+  anaResult(html);
+}
+
+function highlightDiff(added, removed, changed){
+  const svg=document.getElementById('canvas').querySelector('svg');
+  if(!svg){ toast('Render graph first','error'); return; }
+  const addedSet=new Set(added), changedSet=new Set(changed);
+  svg.querySelectorAll('g[data-fn]').forEach(g=>{
+    const fn=g.dataset.fn; const r=g.querySelector('rect'); if(!r) return;
+    if(addedSet.has(fn)){ r.setAttribute('stroke','#22c55e');r.setAttribute('stroke-width','3');r.style.filter='drop-shadow(0 0 6px #22c55e88)';r.style.opacity='1'; }
+    else if(changedSet.has(fn)){ r.setAttribute('stroke','#f59e0b');r.setAttribute('stroke-width','2.5');r.style.filter='drop-shadow(0 0 5px #f59e0b88)';r.style.opacity='1'; }
+    else { r.style.opacity='0.15'; r.style.filter='none'; }
+  });
+  toast(`Diff: ${added.length} added, ${changed.length} changed`,'ok');
+}
+
+
 // ══ GLOBALS PANEL ═════════════════════════════════════════════
 function highlightGlobalTouchers(varName){
   const touchers=new Set();
@@ -2941,6 +3338,7 @@ function showCtxMenu(e, fn){
   m.innerHTML=`
     <div class="ctx-mi" onclick="traceFunction('${fn}');hideCtxMenu()">◈ Trace</div>
     <div class="ctx-mi" onclick="showInfo('${fn}');hideCtxMenu()">ℹ Info panel</div>
+    <div class="ctx-mi" onclick="toggleBookmark('${fn}');hideCtxMenu()">${isBookmarked(fn)?'★ Unbookmark':'☆ Bookmark'}</div>
     <div class="ctx-mi" onclick="navigator.clipboard.writeText('${fn}').then(()=>toast('Copied ✓','ok'));hideCtxMenu()">⎘ Copy name</div>
     <div class="ctx-mi-sep"></div>
     <div class="ctx-mi" onclick="highlightUpstream('${fn}');hideCtxMenu()">↑ Highlight callers</div>
@@ -2950,7 +3348,8 @@ function showCtxMenu(e, fn){
       : `<div class="ctx-mi" onclick="toggleCollapse('${fn}');hideCtxMenu()">− Collapse subtree</div>`}
     <div class="ctx-mi-sep"></div>
     <div class="ctx-mi" onclick="filterFns('${fn}');document.getElementById('fn-search').value='${fn}';hideCtxMenu()">🔍 Find in list</div>
-    ${meta&&meta.file?`<div class="ctx-mi" onclick="navigator.clipboard.writeText('${meta.file}:${meta.line||0}').then(()=>toast('Copied ✓','ok'));hideCtxMenu()">📄 Copy file:line</div>`:''}
+    ${meta&&meta.file?`<div class="ctx-mi" onclick="navigator.clipboard.writeText('${meta.file}:${meta.line||0}').then(()=>toast('Copied ✓','ok'));hideCtxMenu()">📋 Copy file:line</div>`:''}
+    ${meta&&meta.file?`<div class="ctx-mi" onclick="openSource('${meta.file}');hideCtxMenu()">📄 View source</div>`:''}
   `;
   // Position — avoid overflow
   m.style.display='block';

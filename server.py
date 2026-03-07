@@ -474,6 +474,28 @@ def api_index():
 
     threading.Thread(target=_run, daemon=True).start()
     return jsonify({"stream_id": stream_id})
+
+# ── Source file reader ───────────────────────────────────────────
+@app.route("/api/source")
+def api_source():
+    filepath = request.args.get("file", "")
+    root = request.args.get("root", "")
+    if not filepath or not root:
+        return jsonify({"error": "file and root params required"}), 400
+    # Resolve and validate
+    root_p = Path(root).resolve()
+    file_p = (root_p / filepath).resolve()
+    # Security: must be under root
+    if not str(file_p).startswith(str(root_p)):
+        return jsonify({"error": "path traversal not allowed"}), 403
+    if not file_p.exists():
+        return jsonify({"error": f"file not found: {filepath}"}), 404
+    try:
+        lines = file_p.read_text(encoding='utf-8', errors='replace').splitlines()
+        return jsonify({"file": filepath, "lines": lines, "total": len(lines)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7411))
     print(f"\n  ✦ Callgraph Web  →  http://localhost:{port}\n")
