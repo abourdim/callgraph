@@ -423,85 +423,165 @@ def build_multi(graph):
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     edges = graph.get('edges',{})
     callers_map = graph.get('callers',{})
+    by_mod = defaultdict(list)
+    for n in proj_fns: by_mod[_mod(n)].append(n)
     races_by_fn = defaultdict(list)
     for r in graph.get('races',[]):
         races_by_fn[r.get('task_fn','')].append(r)
         for iw in r.get('isr_writers',[]): races_by_fn[iw].append(r)
 
-    SHARED_CSS = """*{box-sizing:border-box;margin:0;padding:0}:root{--bg:#0c0e14;--bg2:#12151e;--bg3:#181c28;--text:#dce0ec;--text2:#8890a8;--text3:#555a6c;--accent:#60a5fa;--border:#2a2f3e;--font:'IBM Plex Mono',monospace}
+    CSS = """*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0c0e14;--bg2:#12151e;--bg3:#181c28;--text:#dce0ec;--text2:#8890a8;--text3:#555a6c;--accent:#60a5fa;--border:#2a2f3e;--font:'IBM Plex Mono',monospace;--amber:#fbbf24;--red:#f87171;--green:#4ade80;--purple:#a78bfa}
 .light{--bg:#f5f5f0;--bg2:#fff;--bg3:#eaeae2;--text:#1a1a18;--text2:#555;--text3:#888;--accent:#2563eb;--border:#c8c8bc}
-body{font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);line-height:1.6}
-a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
-.container{max-width:1000px;margin:0 auto;padding:1.5rem}
-h1{font-family:'Source Serif 4',Georgia,serif;font-size:1.6rem;margin-bottom:.3rem}
-h2{font-size:1.1rem;margin:1.5rem 0 .5rem;border-bottom:1px solid var(--border);padding-bottom:.3rem}
-.sub{font-size:.72rem;color:var(--text3);margin-bottom:1rem}
-table{width:100%;border-collapse:collapse;font-size:.75rem}th{text-align:left;padding:.35rem .5rem;border-bottom:2px solid var(--border);color:var(--text3);font-size:.6rem;text-transform:uppercase}
-td{padding:.3rem .5rem;border-bottom:1px solid var(--border)}tr:hover td{background:var(--bg3)}
-.fn-link{font-family:var(--font);color:var(--accent)}.bdg{font-size:.55rem;padding:.08rem .25rem;border-radius:3px;margin-right:.15rem}
-.graph-wrap{border:1px solid var(--border);border-radius:6px;padding:.4rem;margin:.5rem 0;overflow-x:auto;background:var(--bg)}"""
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text)}
+.shell{display:flex;height:100%}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sidebar-head{padding:.6rem .8rem;border-bottom:1px solid var(--border)}
+.sidebar-head h1{font-family:'Source Serif 4',Georgia,serif;font-size:.95rem}
+.sidebar-head .sub{font-size:.58rem;color:var(--text3)}
+.nav{flex:1;overflow-y:auto;padding:.3rem 0}
+.nav a{display:block;padding:.25rem .8rem;font-size:.68rem;color:var(--text2);text-decoration:none;border-left:2px solid transparent}
+.nav a:hover{background:var(--bg3);color:var(--accent)}
+.nav a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent)08}
+.nav .mod-hdr{font-weight:600;padding:.3rem .8rem;font-size:.65rem}
+.sidebar-foot{padding:.4rem .8rem;border-top:1px solid var(--border)}
+.sidebar-foot button{background:none;border:1px solid var(--border);border-radius:4px;padding:.12rem .35rem;font-size:.55rem;color:var(--text3);cursor:pointer;margin-right:.2rem}
+.sidebar-foot button:hover{border-color:var(--accent);color:var(--accent)}
+.content{flex:1;overflow-y:auto;padding:1.5rem 2rem 3rem}
+h1{font-family:'Source Serif 4',Georgia,serif;font-size:1.4rem;margin-bottom:.2rem}
+h2{font-size:1rem;margin:1.2rem 0 .4rem;border-bottom:1px solid var(--border);padding-bottom:.2rem}
+.sub{font-size:.7rem;color:var(--text3);margin-bottom:.8rem}
+table{width:100%;border-collapse:collapse;font-size:.75rem;margin:.4rem 0}
+th{text-align:left;padding:.3rem .5rem;border-bottom:2px solid var(--border);font-weight:500;color:var(--text3);font-size:.6rem;text-transform:uppercase}
+td{padding:.25rem .5rem;border-bottom:1px solid var(--border)}
+tr:hover td{background:var(--bg3)}
+.fn-link{font-family:var(--font);color:var(--accent);text-decoration:none;font-size:.75rem}
+.fn-link:hover{text-decoration:underline}
+.bdg{display:inline-block;font-size:.55rem;padding:.08rem .25rem;border-radius:3px;margin-right:.15rem;font-family:var(--font)}
+.bdg.isr{background:#a78bfa18;color:#a78bfa}.bdg.entry{background:#60a5fa18;color:#60a5fa}.bdg.crit{background:#fbbf2418;color:#fbbf24}.bdg.hw{background:#d9770618;color:#d97706}
+.graph-wrap{border:1px solid var(--border);border-radius:6px;padding:.4rem;margin:.4rem 0;overflow-x:auto;background:var(--bg)}
+.meta-row{display:flex;gap:1rem;flex-wrap:wrap;margin:.4rem 0;font-size:.7rem;color:var(--text2)}
+.meta-label{color:var(--text3);font-size:.58rem;text-transform:uppercase}
+.sect-label{font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:.5rem 0 .15rem}
+@media print{.sidebar{display:none}.content{overflow:visible}}"""
 
     buf = io.BytesIO()
     zf = zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED)
-    zf.writestr('assets/style.css', SHARED_CSS)
+    zf.writestr('assets/style.css', CSS)
 
-    def pg_head(title, css='assets/style.css'):
-        return f'<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)}</title><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="{css}"></head><body><div class="container">'
-    def pg_foot(back='index.html'):
-        return f'<div style="margin-top:2rem;padding:1rem 0;border-top:1px solid var(--border);font-size:.7rem;color:var(--text3)"><a href="{back}">← Index</a> · Callgraph Studio · {now}</div></div></body></html>'
+    def fn_safe(fn): return re.sub(r'[^a-zA-Z0-9_]', '_', fn)
     def fn_link(fn, prefix='functions/'):
-        safe = re.sub(r'[^a-zA-Z0-9_]', '_', fn)
-        return f'<a class="fn-link" href="{prefix}{safe}.html">{esc(fn)}</a>'
+        return f'<a class="fn-link" href="{prefix}{fn_safe(fn)}.html">{esc(fn)}</a>'
 
-    # Index
-    idx = pg_head(f'{proj_name} — Docs', 'assets/style.css')
-    idx += f'<h1>{esc(proj_name)}</h1><div class="sub">{len(proj_fns)} functions · {len(mods)} modules · {now}</div>'
-    if mods:
-        idx += '<h2>Modules</h2><div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">'
-        for m in mods:
-            c = _mc(m, mods); safe_m = re.sub(r'[^a-zA-Z0-9_]','_',m)
-            idx += f'<a href="modules/{safe_m}.html" style="background:{c}15;color:{c};border:1px solid {c}30;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;text-decoration:none">{esc(m)}</a>'
-        idx += '</div>'
-    idx += '<h2>Functions</h2><table><thead><tr><th>Function</th><th>Module</th><th>File</th><th>In</th><th>Out</th></tr></thead><tbody>'
+    def sidebar_html(active_type='', active_id='', prefix=''):
+        s = f'''<nav class="sidebar">
+<div class="sidebar-head"><h1>{esc(proj_name)}</h1><div class="sub">{len(proj_fns)} fns · {len(mods)} mods · {now}</div></div>
+<div class="nav">
+<a href="{prefix}index.html" {"class='active'" if active_type=='index' else ""}>◈ Overview</a>'''
+        for mod in mods:
+            c = _mc(mod, mods)
+            sm = fn_safe(mod)
+            s += f'<div class="mod-hdr" style="color:{c}">{esc(mod)}</div>'
+            s += f'<a href="{prefix}modules/{sm}.html" {"class=\\'active\\'" if active_type=="mod" and active_id==mod else ""}>&nbsp;&nbsp;📦 Module page</a>'
+            for n in by_mod.get(mod,[])[:20]:
+                sf = fn_safe(n['id'])
+                act = ' class="active"' if active_type=='fn' and active_id==n['id'] else ''
+                s += f'<a href="{prefix}functions/{sf}.html"{act} style="padding-left:1.4rem;font-family:var(--font);font-size:.6rem">{esc(n["id"][:22])}</a>'
+            if len(by_mod.get(mod,[])) > 20:
+                s += f'<a style="padding-left:1.4rem;font-size:.58rem;color:var(--text3);font-style:italic">…+{len(by_mod[mod])-20} more</a>'
+        s += '</div><div class="sidebar-foot">'
+        s += '<button onclick="document.documentElement.classList.toggle(\'light\')">◐ Theme</button>'
+        s += '<button onclick="window.print()">⎙ Print</button></div></nav>'
+        return s
+
+    def page_wrap(title, body_html, active_type='', active_id='', prefix=''):
+        return f'''<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{esc(title)}</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{prefix}assets/style.css"></head><body>
+<div class="shell">{sidebar_html(active_type, active_id, prefix)}
+<main class="content">{body_html}</main></div></body></html>'''
+
+    # ── Index page ───────────────────────────────────────
+    idx = f'<h1>{esc(proj_name)}</h1><div class="sub">{len(proj_fns)} functions · {len(mods)} modules · {graph.get("files",0)} files · {now}</div>'
+    idx += '<h2>Modules</h2><div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem">'
+    for m in mods:
+        c = _mc(m, mods)
+        idx += f'<a href="modules/{fn_safe(m)}.html" style="background:{c}15;color:{c};border:1px solid {c}30;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;text-decoration:none">{esc(m)} ({len(by_mod.get(m,[]))})</a>'
+    idx += '</div>'
+    idx += '<h2>All Functions</h2><table><thead><tr><th>Function</th><th>Module</th><th>File</th><th>In</th><th>Out</th><th>Flags</th></tr></thead><tbody>'
     for n in proj_fns:
         mod = _mod(n); c = _mc(mod, mods) if mod not in ('external','.') else '#888'
-        idx += f'<tr><td>{fn_link(n["id"])}</td><td style="color:{c}">{esc(mod)}</td><td style="font-size:.65rem;color:var(--text3)">{esc(n.get("file",""))}</td><td>{n.get("in_degree",0)}</td><td>{n.get("out_degree",0)}</td></tr>'
-    idx += '</tbody></table>' + pg_foot('')
-    zf.writestr('index.html', idx)
+        idx += f'<tr><td>{fn_link(n["id"])}</td><td style="color:{c};font-size:.68rem">{esc(mod)}</td><td style="font-size:.62rem;color:var(--text3)">{esc(n.get("file",""))}</td><td>{n.get("in_degree",0)}</td><td>{n.get("out_degree",0)}</td><td>{_badges(n)}</td></tr>'
+    idx += '</tbody></table>'
+    zf.writestr('index.html', page_wrap(f'{proj_name} — Docs', idx, 'index', '', ''))
 
-    # Per-function
+    # ── Per-function pages ───────────────────────────────
     for n in proj_fns:
-        fn = n['id']; safe_fn = re.sub(r'[^a-zA-Z0-9_]','_',fn)
-        mod = _mod(n); c = _mc(mod, mods) if mod not in ('external','.') else '#888'
-        pg = pg_head(fn, '../assets/style.css')
-        pg += f'<h1 style="color:{c}">{esc(fn)}</h1><div class="sub">{esc(n.get("file",""))}:{n.get("line",0)} · {esc(mod)} · {_badges(n)}</div>'
-        pg += f'<div class="graph-wrap">{_mini_svg(fn, graph, nmap, mods)}</div>'
-        fc = callers_map.get(fn,[])
-        fe = edges.get(fn,[])
-        if fc: pg += f'<h2>Called by</h2><div style="display:flex;flex-wrap:wrap;gap:.3rem">{"".join(fn_link(cf,"") for cf in sorted(fc))}</div>'
-        if fe: pg += f'<h2>Calls</h2><div style="display:flex;flex-wrap:wrap;gap:.3rem">{"".join(fn_link(cf,"") for cf in sorted(fe))}</div>'
-        rd,wr = n.get('reads',[]),n.get('writes',[])
+        fn = n['id']; mod = _mod(n)
+        c = _mc(mod, mods) if mod not in ('external','.') else '#888'
+        fc = callers_map.get(fn, []); fe = edges.get(fn, [])
+        
+        body = f'<h1 style="color:{c}">{esc(fn)}</h1>'
+        body += f'<div class="sub">{esc(n.get("file",""))}:{n.get("line",0)} · module: <span style="color:{c}">{esc(mod)}</span> · {_badges(n)}</div>'
+        body += '<div class="meta-row">'
+        body += f'<div><span class="meta-label">Callers</span><br>{n.get("in_degree",0)}</div>'
+        body += f'<div><span class="meta-label">Calls</span><br>{n.get("out_degree",0)}</div>'
+        body += '</div>'
+        body += f'<div class="graph-wrap">{_mini_svg(fn, graph, nmap, mods)}</div>'
+        if fc:
+            body += f'<h2>Called by ({len(fc)})</h2><div style="display:flex;flex-wrap:wrap;gap:.3rem">'
+            for cf in sorted(fc): body += fn_link(cf, '')
+            body += '</div>'
+        if fe:
+            body += f'<h2>Calls ({len(fe)})</h2><div style="display:flex;flex-wrap:wrap;gap:.3rem">'
+            for cf in sorted(fe): body += fn_link(cf, '')
+            body += '</div>'
+        rd, wr = n.get('reads',[]), n.get('writes',[])
         if rd or wr:
-            pg += '<h2>Globals</h2>'
-            if rd: pg += f'<div style="color:var(--accent);font-size:.75rem">reads: {", ".join(esc(g) for g in rd)}</div>'
-            if wr: pg += f'<div style="color:#f87171;font-size:.75rem">writes: {", ".join(esc(g) for g in wr)}</div>'
+            body += '<h2>Globals</h2>'
+            if rd: body += f'<div style="color:var(--accent);font-size:.75rem;font-family:var(--font)">reads: {", ".join(esc(g) for g in rd)}</div>'
+            if wr: body += f'<div style="color:var(--red);font-size:.75rem;font-family:var(--font)">writes: {", ".join(esc(g) for g in wr)}</div>'
         pp = n.get('peripherals',[])
-        if pp: pg += f'<h2>Peripherals</h2><div style="color:#fbbf24;font-size:.75rem">{", ".join(esc(p) for p in pp)}</div>'
-        pg += pg_foot('../index.html')
-        zf.writestr(f'functions/{safe_fn}.html', pg)
+        if pp: body += f'<h2>Peripherals</h2><div style="color:var(--amber);font-size:.75rem;font-family:var(--font)">{", ".join(esc(p) for p in pp)}</div>'
+        fr = races_by_fn.get(fn,[])
+        if fr:
+            body += '<h2>Race Involvement</h2>'
+            for r in fr:
+                sc = '#f87171' if r.get('severity')=='high' else '#fbbf24'
+                body += f'<div style="font-size:.75rem"><span style="color:{sc}">●</span> {esc(r.get("var",""))} — {"protected" if r.get("protected") else "UNPROTECTED"}</div>'
+        zf.writestr(f'functions/{fn_safe(fn)}.html', page_wrap(fn, body, 'fn', fn, '../'))
 
-    # Per-module
+    # ── Per-module pages ─────────────────────────────────
     for mod in mods:
-        safe_m = re.sub(r'[^a-zA-Z0-9_]','_',mod); c = _mc(mod, mods)
-        mod_fns = sorted([n for n in proj_fns if _mod(n)==mod], key=lambda n:n['id'])
+        c = _mc(mod, mods)
+        mod_fns = by_mod.get(mod, [])
         files = sorted(set(n.get('file','') for n in mod_fns if n.get('file')))
-        pg = pg_head(f'Module: {mod}', '../assets/style.css')
-        pg += f'<h1 style="color:{c}">{esc(mod)}</h1><div class="sub">{len(mod_fns)} functions · {len(files)} files</div>'
-        pg += '<h2>Functions</h2><table><thead><tr><th>Function</th><th>In</th><th>Out</th></tr></thead><tbody>'
+        
+        body = f'<h1 style="color:{c}">📦 {esc(mod)}</h1>'
+        body += f'<div class="sub">{len(mod_fns)} functions · {len(files)} files</div>'
+        body += f'<div style="font-size:.7rem;color:var(--text3);margin-bottom:.6rem">Files: {", ".join(esc(f) for f in files[:15])}</div>'
+        body += '<h2>Functions</h2><table><thead><tr><th>Function</th><th>File</th><th>In</th><th>Out</th><th>Flags</th></tr></thead><tbody>'
         for n in mod_fns:
-            pg += f'<tr><td>{fn_link(n["id"],"../functions/")}</td><td>{n.get("in_degree",0)}</td><td>{n.get("out_degree",0)}</td></tr>'
-        pg += '</tbody></table>' + pg_foot('../index.html')
-        zf.writestr(f'modules/{safe_m}.html', pg)
+            body += f'<tr><td>{fn_link(n["id"],"../functions/")}</td><td style="font-size:.62rem;color:var(--text3)">{esc(n.get("file",""))}</td><td>{n.get("in_degree",0)}</td><td>{n.get("out_degree",0)}</td><td>{_badges(n)}</td></tr>'
+        body += '</tbody></table>'
+        
+        # Cross-module deps
+        me = graph.get('mod_edges',{})
+        deps_out = [(k.split('→')[1], v) for k,v in me.items() if k.startswith(mod+'→') and k.split('→')[1]!=mod]
+        deps_in = [(k.split('→')[0], v) for k,v in me.items() if k.endswith('→'+mod) and k.split('→')[0]!=mod]
+        if deps_out or deps_in:
+            body += '<h2>Dependencies</h2>'
+            if deps_out:
+                body += '<div style="font-size:.75rem;margin:.2rem 0"><b>Depends on:</b> '
+                body += ', '.join(f'<a href="{fn_safe(m)}.html" style="color:{_mc(m,mods)}">{esc(m)} ({c2})</a>' for m,c2 in sorted(deps_out,key=lambda x:-x[1]))
+                body += '</div>'
+            if deps_in:
+                body += '<div style="font-size:.75rem;margin:.2rem 0"><b>Used by:</b> '
+                body += ', '.join(f'<a href="{fn_safe(m)}.html" style="color:{_mc(m,mods)}">{esc(m)} ({c2})</a>' for m,c2 in sorted(deps_in,key=lambda x:-x[1]))
+                body += '</div>'
+        
+        zf.writestr(f'modules/{fn_safe(mod)}.html', page_wrap(f'Module: {mod}', body, 'mod', mod, '../'))
 
     zf.close()
     return buf.getvalue()

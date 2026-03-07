@@ -1,0 +1,15 @@
+feat: Callgraph Studio v2.3.0
+
+Block comments: /* */ multi-line C comments now highlighted correctly
+across lines (state tracked per line in source view)
+
+Unified test runner: ./run_tests.sh [all|quick|smoke|deep|static|report]
+Runs all 4 suites with combined score. 686 tests.
+
+Docs ZIP v2: every page now has sidebar navigation with module→function
+tree, mini SVG call graphs, race info, globals, peripherals, cross-module
+dependencies. Same design as single-file mode.
+
+README.md: install, usage, feature list, architecture, test commands.
+
+Tests: 686 · Lines: 15,000+

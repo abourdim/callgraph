@@ -530,7 +530,7 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
     <span class="bism-ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</span>
     <div class="bism-rule"><span class="bism-gem">✦</span></div>
     <div class="bism-title">Callgraph Studio</div>
-    <div class="bism-sub">C · Interactive Call Graph Explorer&nbsp;v2.2.1</div>
+    <div class="bism-sub">C · Interactive Call Graph Explorer&nbsp;v2.3.0</div>
   </div>
   <div id="restore-banner" style="display:none;align-items:center;gap:.7rem;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:.65rem 1rem;margin-bottom:.8rem;font-size:.78rem;">
     <span style="color:var(--text3)">↩</span>
@@ -3316,9 +3316,36 @@ const _C_PP = /^(\s*#\s*\w+.*)/;
 const _C_CMT_LINE = /(\/\/.*)/;
 const _C_STR = /(&quot;[^&]*?&quot;|'[^']*?')/g;
 
-function highlightC(line){
+function highlightC(line, inBlock){
+  // Block comment continuation
+  if(inBlock){
+    const endIdx = line.indexOf('*/');
+    if(endIdx >= 0){
+      return {html:'<span class="sh-cmt">'+line.slice(0,endIdx+2)+'</span>'+highlightC(line.slice(endIdx+2),false).html, inBlock:false};
+    }
+    return {html:'<span class="sh-cmt">'+line+'</span>', inBlock:true};
+  }
+  // Block comment start
+  const blkIdx = line.indexOf('/*');
+  if(blkIdx >= 0){
+    const before = line.slice(0, blkIdx);
+    const rest = line.slice(blkIdx);
+    const endIdx = rest.indexOf('*/', 2);
+    if(endIdx >= 0){
+      // Block comment opens and closes on same line
+      const cmt = rest.slice(0, endIdx+2);
+      const after = rest.slice(endIdx+2);
+      const bh = highlightC(before, false).html;
+      const ah = highlightC(after, false);
+      return {html:bh+'<span class="sh-cmt">'+cmt+'</span>'+ah.html, inBlock:ah.inBlock};
+    } else {
+      // Block comment opens, doesn't close
+      const bh = highlightC(before, false).html;
+      return {html:bh+'<span class="sh-cmt">'+rest+'</span>', inBlock:true};
+    }
+  }
   // Preprocessor (whole line)
-  if(_C_PP.test(line)) return line.replace(_C_PP, '<span class="sh-pp">$1</span>');
+  if(_C_PP.test(line)) return {html:line.replace(_C_PP, '<span class="sh-pp">$1</span>'), inBlock:false};
   // Line comment
   const cmtIdx = line.indexOf('//');
   let code = line, cmt = '';
@@ -3332,7 +3359,7 @@ function highlightC(line){
   code = code.replace(_C_NUM, '<span class="sh-num">$1</span>');
   // Restore strings
   tokens.forEach((t,i)=>{ code = code.replace('§S'+i+'§', t); });
-  return code + cmt;
+  return {html:code + cmt, inBlock:false};
 }
 async function openSource(filePath){
   if(!G||!filePath) return;
@@ -3387,6 +3414,7 @@ async function openSource(filePath){
       });
     }
 
+    let _inBlockCmt = false;
     let html = '';
     d.lines.forEach((line, i)=>{
       const lineNum = i + 1;
@@ -3404,9 +3432,11 @@ async function openSource(filePath){
         if(diffAdded.has(fn.id)) badges += `<span class="src-badge" style="background:#22c55e22;color:#22c55e" title="New function (not in baseline)">+new</span>`;
         if(diffChanged.has(fn.id)) badges += `<span class="src-badge" style="background:#f59e0b22;color:#f59e0b" title="Changed edges since baseline">~changed</span>`;
       }
-      // Escape HTML then apply syntax highlighting
+      // Escape HTML then apply syntax highlighting (with block comment tracking)
       let escaped = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      escaped = highlightC(escaped);
+      const hl = highlightC(escaped, _inBlockCmt);
+      escaped = hl.html;
+      _inBlockCmt = hl.inBlock;
       html += `<div class="src-line${cls}" ${fn?`data-fn="${esc(fn.id)}" onclick="traceFunction('${esc(fn.id)}')" style="cursor:pointer"`:''}>` +
         `<span class="src-gutter">${lineNum}</span>` +
         `<span class="src-code">${escaped}${badges}</span></div>`;

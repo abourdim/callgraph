@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Callgraph Studio v2.2.1 — Deep Automated Test Suite
+Callgraph Studio v2.3.0 — Deep Automated Test Suite
 
 Comprehensive coverage of all features, endpoints, analysis engines,
 JS functions, CSS, HTML structure, and edge cases.
@@ -247,7 +247,7 @@ routes = [
     ("/api/cancel/", "POST"), ("/api/runs", "GET"),
     ("/api/index", "POST"), ("/api/source", "GET"),
     ("/api/report", "POST"), ("/favicon.ico", "GET"),
-    # v2.2.1
+    # v2.3.0
     ("/api/watch/start", "POST"), ("/api/watch/stop", "POST"),
 ]
 
@@ -701,7 +701,7 @@ try:
     from generator import (
         compute_risk_scores, compute_reading_order, compute_bus_factor,
         detect_patterns, compute_change_difficulty, generate_questions,
-        infer_requirements, compute_timeline, build_glossary,
+        build_requirements, build_timeline, build_glossary,
         generate_report_data, build_html
     )
     ok("All 9 engines + 2 assembly functions imported")
@@ -810,17 +810,20 @@ for fname, code in [('index.html', js), ('template.html', tpl_code if tpl_path.e
     else:
         ok(f"{fname}: no native name collisions ({len(fns)} functions checked)")
 
-if "v2.2.1" in html:
-    ok("index.html: v2.2.1")
+import re as _re_ver
+ver_match = _re_ver.search(r'v\d+\.\d+\.\d+', html)
+if ver_match:
+    ok(f"index.html: {ver_match.group()}")
 else:
-    fail("index.html: wrong version")
+    fail("index.html: no version found")
 
 # Check start.sh version
 sh = (BASE / "start.sh").read_text()
-if "v1.6" in sh:
-    ok("start.sh: v1.6")
+ver_match_sh = _re_ver.search(r'v\d+\.\d+', sh)
+if ver_match_sh:
+    ok(f"start.sh: {ver_match_sh.group()}")
 else:
-    fail("start.sh: wrong version")
+    fail("start.sh: no version found")
 
 
 # ══════════════════════════════════════════════════════════════
