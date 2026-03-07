@@ -1,0 +1,4 @@
+fix: v2.2.1 — wider SVG nodes in data deps diagrams
+
+Node width 120→170px, label cutoff 14→20 chars.
+Fixes truncated function names in data dependency flow diagrams.

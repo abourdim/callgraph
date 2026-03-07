@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Callgraph Studio v2.2.0 — Deep Automated Test Suite
+Callgraph Studio v2.2.1 — Deep Automated Test Suite
 
 Comprehensive coverage of all features, endpoints, analysis engines,
 JS functions, CSS, HTML structure, and edge cases.
@@ -247,7 +247,7 @@ routes = [
     ("/api/cancel/", "POST"), ("/api/runs", "GET"),
     ("/api/index", "POST"), ("/api/source", "GET"),
     ("/api/report", "POST"), ("/favicon.ico", "GET"),
-    # v2.2.0
+    # v2.2.1
     ("/api/watch/start", "POST"), ("/api/watch/stop", "POST"),
 ]
 
@@ -810,8 +810,8 @@ for fname, code in [('index.html', js), ('template.html', tpl_code if tpl_path.e
     else:
         ok(f"{fname}: no native name collisions ({len(fns)} functions checked)")
 
-if "v2.2.0" in html:
-    ok("index.html: v2.2.0")
+if "v2.2.1" in html:
+    ok("index.html: v2.2.1")
 else:
     fail("index.html: wrong version")
 

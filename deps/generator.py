@@ -31,7 +31,7 @@ def _mod(n): return n.get('mod') or n.get('module') or 'external'
 
 def _flow_svg(writers, name, readers, color='#60a5fa', w_label='Writers', r_label='Readers'):
     """Generic flow diagram: writers → central node → readers."""
-    NW, NH, HGAP, VGAP = 120, 24, 50, 7
+    NW, NH, HGAP, VGAP = 170, 26, 40, 8
     max_rows = max(len(writers), len(readers), 1)
     W = 3*(NW+HGAP) + 20
     H = max(max_rows*(NH+VGAP)+40, 70)
@@ -46,7 +46,7 @@ def _flow_svg(writers, name, readers, color='#60a5fa', w_label='Writers', r_labe
     cy = 20 + (max_rows*(NH+VGAP)-NH)/2
     cx = 15 + (NW+HGAP)
     svg += f'<rect x="{cx}" y="{cy}" width="{NW}" height="{NH}" rx="5" fill="{color}22" stroke="{color}" stroke-width="2.5"/>\n'
-    label = name if len(name)<=15 else name[:13]+'…'
+    label = name if len(name)<=22 else name[:20]+'…'
     svg += f'<text x="{cx+NW/2}" y="{cy+NH/2}" text-anchor="middle" dominant-baseline="middle" font-size="9" font-family="monospace" fill="{color}" font-weight="600">{esc(label)}</text>\n'
 
     # Writers
@@ -54,7 +54,7 @@ def _flow_svg(writers, name, readers, color='#60a5fa', w_label='Writers', r_labe
         y = 20 + i*(NH+VGAP)
         x = 15
         svg += f'<rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="4" fill="{col}0d" stroke="{col}" stroke-width="1.2"/>\n'
-        fl = fn if len(fn)<=14 else fn[:12]+'…'
+        fl = fn if len(fn)<=20 else fn[:18]+'…'
         svg += f'<text x="{x+NW/2}" y="{y+NH/2-3}" text-anchor="middle" dominant-baseline="middle" font-size="8" font-family="monospace" fill="{col}">{esc(fl)}</text>\n'
         if ctx:
             svg += f'<text x="{x+NW/2}" y="{y+NH/2+8}" text-anchor="middle" font-size="6" fill="#888" font-family="monospace">{esc(ctx)}</text>\n'
@@ -66,7 +66,7 @@ def _flow_svg(writers, name, readers, color='#60a5fa', w_label='Writers', r_labe
         y = 20 + i*(NH+VGAP)
         x = 15 + 2*(NW+HGAP)
         svg += f'<rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="4" fill="{col}0d" stroke="{col}" stroke-width="1.2"/>\n'
-        fl = fn if len(fn)<=14 else fn[:12]+'…'
+        fl = fn if len(fn)<=20 else fn[:18]+'…'
         svg += f'<text x="{x+NW/2}" y="{y+NH/2-3}" text-anchor="middle" dominant-baseline="middle" font-size="8" font-family="monospace" fill="{col}">{esc(fl)}</text>\n'
         if ctx:
             svg += f'<text x="{x+NW/2}" y="{y+NH/2+8}" text-anchor="middle" font-size="6" fill="#888" font-family="monospace">{esc(ctx)}</text>\n'
