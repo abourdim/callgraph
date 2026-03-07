@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 """
-Callgraph Studio — Function Documentation Generator
+Callgraph Studio — Function Documentation Generator v2
 
-Generates browsable documentation of all functions with call graphs.
-Two modes:
-  - single: one self-contained HTML file
-  - multi:  ZIP with index.html + per-function + per-module pages + CSS
+Single HTML: sidebar TOC, module sections with subgraphs, function cards
+grouped by module, cross-references, expand/collapse, search, diagrams.
 
-Usage:
-  CLI:   python3 generator.py graph.json -o docs.html --mode single
-         python3 generator.py graph.json -o docs.zip --mode multi
-  API:   POST /api/docs?mode=single  (or multi)
+Multi ZIP: per-function + per-module pages.
 """
 
 import json, sys, os, io, zipfile, re
@@ -18,284 +13,410 @@ from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
 
-# ── Helpers ──────────────────────────────────────────────────
-
 def esc(s):
     return (s or '').replace('&','&amp;').replace('<','&lt;').replace('>','&gt;').replace('"','&quot;')
 
-def _node_map(graph):
-    return {n['id']: n for n in graph['nodes']}
+def _nmap(graph): return {n['id']: n for n in graph.get('nodes',[])}
 
 MOD_COLORS = ['#2563eb','#16a34a','#dc2626','#7c3aed','#d97706','#0891b2',
               '#db2777','#ea580c','#65a30d','#c026d3','#0284c7','#ca8a04',
               '#059669','#e11d48','#6366f1','#a16207','#0d9488','#eab308']
 
-def mod_color(mod, mods):
-    mods_clean = [m for m in mods if m not in ('external','.')]
-    idx = mods_clean.index(mod) if mod in mods_clean else 0
+def _mc(mod, mods):
+    clean = [m for m in mods if m not in ('external','.')]
+    idx = clean.index(mod) if mod in clean else 0
     return MOD_COLORS[idx % len(MOD_COLORS)]
 
-def flag_badges(n):
+def _mod(n): return n.get('mod') or n.get('module') or 'external'
+
+def _badges(n):
     b = ''
-    if n.get('is_isr'): b += '<span class="badge isr">ISR</span>'
-    if n.get('is_entry'): b += '<span class="badge entry">entry</span>'
-    if n.get('has_critical'): b += '<span class="badge crit">critical</span>'
-    if n.get('delay_in_loop'): b += '<span class="badge poll">polling</span>'
-    if n.get('peripherals'): b += '<span class="badge hw">hw</span>'
+    if n.get('is_isr'): b += '<span class="bdg isr">ISR</span>'
+    if n.get('is_entry'): b += '<span class="bdg entry">entry</span>'
+    if n.get('has_critical'): b += '<span class="bdg crit">critical</span>'
+    if n.get('delay_in_loop'): b += '<span class="bdg poll">polling</span>'
+    if n.get('peripherals'): b += '<span class="bdg hw">hw</span>'
     return b
 
-def mini_svg(fn, graph, nmap, mods):
-    """Build a mini call graph SVG: callers → fn → callees (2-level)."""
+def _mini_svg(fn, graph, nmap, mods):
     callers = (graph.get('callers',{}).get(fn,[]))[:8]
     callees = (graph.get('edges',{}).get(fn,[]))[:8]
-    n = nmap.get(fn,{})
-
-    NW, NH, HGAP, VGAP = 120, 26, 40, 8
+    NW, NH, HGAP, VGAP = 115, 24, 35, 7
     cols = [callers, [fn], callees]
     max_rows = max(len(c) for c in cols) if cols else 1
-    W = 3*(NW+HGAP) + 40
-    H = max(max_rows*(NH+VGAP)+40, 80)
-
+    W = 3*(NW+HGAP) + 30
+    H = max(max_rows*(NH+VGAP)+30, 70)
     svg = f'<svg width="{W}" height="{H}" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%">\n'
-
     positions = {}
     for ci, col in enumerate(cols):
-        x = 20 + ci*(NW+HGAP)
+        x = 15 + ci*(NW+HGAP)
         col_h = len(col)*(NH+VGAP)
         y_off = (H - col_h)/2
         for ri, item in enumerate(col):
             y = y_off + ri*(NH+VGAP)
             nd = nmap.get(item,{})
-            mod = nd.get('mod') or nd.get('module') or ''
-            color = mod_color(mod, mods) if mod and mod not in ('external','.') else '#666'
-            is_center = (ci == 1)
-            sw = '2.5' if is_center else '1.5'
-            fill = f'{color}1a' if not is_center else f'{color}22'
-            stroke = '#fff' if is_center else color
-            label = item if len(item) <= 14 else item[:12]+'…'
-
-            svg += f'  <rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="5" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>\n'
-            svg += f'  <text x="{x+NW/2}" y="{y+NH/2}" text-anchor="middle" dominant-baseline="middle" font-size="9" font-family="monospace" fill="{color}">{esc(label)}</text>\n'
+            mod = _mod(nd)
+            color = _mc(mod, mods) if mod not in ('external','.') else '#666'
+            is_ctr = (ci == 1)
+            sw = '2.5' if is_ctr else '1.2'
+            fill = f'{color}{"22" if is_ctr else "0d"}'
+            label = item if len(item)<=14 else item[:12]+'…'
+            svg += f'  <rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="4" fill="{fill}" stroke="{color}" stroke-width="{sw}"/>\n'
+            svg += f'  <text x="{x+NW/2}" y="{y+NH/2}" text-anchor="middle" dominant-baseline="middle" font-size="8" font-family="monospace" fill="{color}">{esc(label)}</text>\n'
             positions[item] = (x, y)
-
-    # Arrows: callers → fn
     fx, fy = positions.get(fn, (0,0))
     for c in callers:
         cx, cy = positions.get(c, (0,0))
-        svg += f'  <path d="M{cx+NW},{cy+NH/2} C{cx+NW+HGAP/2},{cy+NH/2} {fx-HGAP/2},{fy+NH/2} {fx},{fy+NH/2}" fill="none" stroke="#ef654880" stroke-width="1.2"/>\n'
-
-    # Arrows: fn → callees
+        svg += f'  <path d="M{cx+NW},{cy+NH/2} C{cx+NW+HGAP/2},{cy+NH/2} {fx-HGAP/2},{fy+NH/2} {fx},{fy+NH/2}" fill="none" stroke="#ef654860" stroke-width="1.2"/>\n'
     for c in callees:
         cx, cy = positions.get(c, (0,0))
-        svg += f'  <path d="M{fx+NW},{fy+NH/2} C{fx+NW+HGAP/2},{fy+NH/2} {cx-HGAP/2},{cy+NH/2} {cx},{cy+NH/2}" fill="none" stroke="#22c55e80" stroke-width="1.2"/>\n'
-
+        svg += f'  <path d="M{fx+NW},{fy+NH/2} C{fx+NW+HGAP/2},{fy+NH/2} {cx-HGAP/2},{cy+NH/2} {cx},{cy+NH/2}" fill="none" stroke="#22c55e60" stroke-width="1.2"/>\n'
     svg += '</svg>'
     return svg
 
 
-# ── CSS ──────────────────────────────────────────────────────
-
-SHARED_CSS = """
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0c0e14;--bg2:#12151e;--bg3:#181c28;--text:#dce0ec;--text2:#8890a8;--text3:#555a6c;--accent:#60a5fa;--border:#2a2f3e;--green:#4ade80;--red:#f87171;--amber:#fbbf24;--purple:#a78bfa;--cyan:#22d3ee;--font:'IBM Plex Mono',monospace}
-.light{--bg:#f5f5f0;--bg2:#fff;--bg3:#eaeae2;--text:#1a1a18;--text2:#555;--text3:#888;--accent:#2563eb;--border:#c8c8bc;--green:#16a34a;--red:#dc2626;--amber:#d97706;--purple:#7c3aed;--cyan:#0891b2}
-body{font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);line-height:1.6}
-a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
-.container{max-width:1000px;margin:0 auto;padding:1.5rem}
-h1{font-family:'Source Serif 4',Georgia,serif;font-size:1.6rem;margin-bottom:.3rem}
-h2{font-family:'Source Serif 4',Georgia,serif;font-size:1.2rem;margin:1.5rem 0 .5rem;border-bottom:1px solid var(--border);padding-bottom:.3rem}
-h3{font-size:.95rem;margin:.8rem 0 .3rem;color:var(--accent)}
-.sub{font-size:.75rem;color:var(--text3);margin-bottom:1.5rem}
-table{width:100%;border-collapse:collapse;font-size:.78rem;margin:.5rem 0}
-th{text-align:left;padding:.4rem .5rem;border-bottom:2px solid var(--border);font-weight:500;color:var(--text2);font-size:.68rem;text-transform:uppercase}
-td{padding:.35rem .5rem;border-bottom:1px solid var(--border)}
-tr:hover td{background:var(--bg3)}
-.fn-link{font-family:var(--font);color:var(--accent);cursor:pointer}
-.fn-link:hover{text-decoration:underline}
-.badge{display:inline-block;font-size:.58rem;padding:.1rem .3rem;border-radius:3px;margin-right:.2rem;font-family:var(--font)}
-.badge.isr{background:#a78bfa22;color:#a78bfa}
-.badge.entry{background:#60a5fa22;color:#60a5fa}
-.badge.crit{background:#fbbf2422;color:#fbbf24}
-.badge.poll{background:#f8717122;color:#f87171}
-.badge.hw{background:#d9770622;color:#d97706}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin:.6rem 0;overflow:hidden}
-.card-hdr{display:flex;align-items:center;gap:.5rem;padding:.55rem .8rem;cursor:pointer}
-.card-hdr:hover{background:var(--bg3)}
-.card-arrow{font-size:.6rem;color:var(--text3);transition:transform .2s}
-.card.open .card-arrow{transform:rotate(90deg)}
-.card-title{font-family:var(--font);font-size:.85rem;font-weight:500;flex:1}
-.card-body{display:none;padding:.6rem .8rem;border-top:1px solid var(--border);font-size:.78rem}
-.card.open .card-body{display:block}
-.meta-row{display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:.4rem;font-size:.72rem;color:var(--text2)}
-.meta-label{color:var(--text3);font-size:.62rem;text-transform:uppercase}
-.list-inline{display:flex;flex-wrap:wrap;gap:.3rem;margin:.2rem 0}
-.list-inline a,.list-inline span{font-family:var(--font);font-size:.72rem}
-.graph-wrap{border:1px solid var(--border);border-radius:6px;padding:.4rem;margin:.5rem 0;overflow-x:auto;background:var(--bg)}
-.search{width:100%;padding:.4rem .6rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:var(--font);font-size:.75rem;outline:none;margin-bottom:.8rem}
-.search:focus{border-color:var(--accent)}
-.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
-.topbar button{background:none;border:1px solid var(--border);border-radius:4px;padding:.2rem .5rem;font-size:.65rem;color:var(--text2);cursor:pointer}
-.topbar button:hover{border-color:var(--accent);color:var(--accent)}
-.mod-tag{font-size:.62rem;padding:.1rem .35rem;border-radius:3px;font-family:var(--font)}
-.section-label{font-size:.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:.6rem 0 .2rem}
-.globals-list{font-family:var(--font);font-size:.7rem}
-.globals-list .read{color:var(--accent)}.globals-list .write{color:var(--red)}.globals-list .rw{color:var(--amber)}
-@media print{body{background:#fff;color:#000;font-size:11px}.card-body{display:block!important}.topbar button{display:none}}
-"""
-
-
-# ── Single-file generator ────────────────────────────────────
+# ══════════════════════════════════════════════════════════
+# SINGLE-FILE (full-featured)
+# ══════════════════════════════════════════════════════════
 
 def build_single(graph):
-    """Build one self-contained HTML with all functions."""
-    nmap = _node_map(graph)
+    nmap = _nmap(graph)
     mods = [m for m in graph.get('mods',[]) if m not in ('external','.')]
-    proj_fns = sorted([n for n in graph['nodes'] if n.get('type')=='project'], key=lambda n: n['id'])
-    proj_name = Path(graph.get('source','project')).name
-    now = datetime.now().strftime('%Y-%m-%d %H:%M')
     edges = graph.get('edges',{})
     callers = graph.get('callers',{})
+    proj_name = Path(graph.get('source','project')).name
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
     races_by_fn = defaultdict(list)
     for r in graph.get('races',[]):
         races_by_fn[r.get('task_fn','')].append(r)
-        for iw in r.get('isr_writers',[]): races_by_fn[iw].append(r)
+        for w in r.get('isr_writers',[]): races_by_fn[w].append(r)
 
-    html = f'''<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    # Group functions by module
+    by_mod = defaultdict(list)
+    for n in graph['nodes']:
+        if n.get('type')!='project': continue
+        by_mod[_mod(n)].append(n)
+    for m in by_mod: by_mod[m].sort(key=lambda n: n['id'])
+
+    all_fns = sorted([n for n in graph['nodes'] if n.get('type')=='project'], key=lambda n: n['id'])
+
+    # ── CSS ──────────────────────────────────────────────
+    css = """
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0c0e14;--bg2:#12151e;--bg3:#181c28;--bg4:#1e2334;--text:#dce0ec;--text2:#8890a8;--text3:#555a6c;
+--accent:#60a5fa;--border:#2a2f3e;--border2:#353b4e;--green:#4ade80;--red:#f87171;--amber:#fbbf24;--purple:#a78bfa;--cyan:#22d3ee;
+--sidebar-w:230px;--font-body:'DM Sans',sans-serif;--font-head:'Source Serif 4',Georgia,serif;--font-mono:'IBM Plex Mono',monospace}
+.light{--bg:#f5f5f0;--bg2:#fff;--bg3:#eaeae2;--bg4:#ddddd5;--text:#1a1a18;--text2:#555;--text3:#888;--accent:#2563eb;--border:#c8c8bc;--border2:#b8b8ac}
+html,body{height:100%;overflow:hidden;font-family:var(--font-body);font-size:13px;background:var(--bg);color:var(--text)}
+.shell{display:flex;height:100%}
+.sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sidebar-head{padding:.8rem 1rem;border-bottom:1px solid var(--border)}
+.sidebar-head h1{font-family:var(--font-head);font-size:1.1rem;margin-bottom:.15rem}
+.sidebar-head .sub{font-size:.65rem;color:var(--text3)}
+.toc{flex:1;overflow-y:auto;padding:.4rem 0}
+.toc-mod{padding:.3rem .8rem;font-size:.68rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.3rem}
+.toc-mod:hover{background:var(--bg3)}
+.toc-fn{padding:.15rem .8rem .15rem 1.6rem;font-size:.65rem;color:var(--text2);cursor:pointer;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toc-fn:hover{background:var(--bg3);color:var(--accent)}
+.toc-fn.active{color:var(--accent);background:var(--accent)0d}
+.toc-fns{display:none;max-height:200px;overflow-y:auto}
+.toc-mod.expanded .toc-fns{display:block}
+.toc-arrow{font-size:.5rem;color:var(--text3);transition:transform .2s}
+.toc-mod.expanded .toc-arrow{transform:rotate(90deg)}
+.sidebar-foot{padding:.5rem .8rem;border-top:1px solid var(--border);display:flex;gap:.3rem;flex-wrap:wrap}
+.sidebar-foot button{background:none;border:1px solid var(--border);border-radius:4px;padding:.15rem .4rem;font-size:.58rem;color:var(--text3);cursor:pointer}
+.sidebar-foot button:hover{border-color:var(--accent);color:var(--accent)}
+.content{flex:1;overflow-y:auto;padding:1.5rem 2.5rem 3rem}
+.search{width:100%;padding:.4rem .7rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:.75rem;outline:none;margin-bottom:1rem}
+.search:focus{border-color:var(--accent)}
+.section{padding-bottom:1.5rem;border-bottom:1px solid var(--border);margin-bottom:1.5rem}
+.sect-title{font-family:var(--font-head);font-size:1.15rem;margin-bottom:.6rem}
+.mod-tag{font-size:.6rem;padding:.12rem .4rem;border-radius:3px;font-family:var(--font-mono)}
+table{width:100%;border-collapse:collapse;font-size:.75rem;margin:.5rem 0}
+th{text-align:left;padding:.35rem .5rem;border-bottom:2px solid var(--border);font-weight:500;color:var(--text3);font-size:.62rem;text-transform:uppercase}
+td{padding:.3rem .5rem;border-bottom:1px solid var(--border)}
+tr:hover td{background:var(--bg3)}
+.fn-link{font-family:var(--font-mono);color:var(--accent);cursor:pointer;text-decoration:none;font-size:.75rem}
+.fn-link:hover{text-decoration:underline}
+.bdg{display:inline-block;font-size:.55rem;padding:.08rem .25rem;border-radius:3px;margin-right:.15rem;font-family:var(--font-mono)}
+.bdg.isr{background:#a78bfa18;color:#a78bfa}.bdg.entry{background:#60a5fa18;color:#60a5fa}.bdg.crit{background:#fbbf2418;color:#fbbf24}.bdg.poll{background:#f8717118;color:#f87171}.bdg.hw{background:#d9770618;color:#d97706}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin:.5rem 0;overflow:hidden}
+.card-hdr{display:flex;align-items:center;gap:.4rem;padding:.45rem .7rem;cursor:pointer}
+.card-hdr:hover{background:var(--bg3)}
+.card-arrow{font-size:.55rem;color:var(--text3);transition:transform .2s}
+.card.open .card-arrow{transform:rotate(90deg)}
+.card-title{font-family:var(--font-mono);font-size:.8rem;font-weight:500;flex:1}
+.card-body{display:none;padding:.5rem .7rem;border-top:1px solid var(--border);font-size:.75rem;line-height:1.6}
+.card.open .card-body{display:block}
+.meta-row{display:flex;gap:1.2rem;flex-wrap:wrap;margin-bottom:.4rem;font-size:.7rem;color:var(--text2)}
+.meta-label{color:var(--text3);font-size:.58rem;text-transform:uppercase}
+.sect-label{font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:.5rem 0 .15rem}
+.graph-wrap{border:1px solid var(--border);border-radius:6px;padding:.4rem;margin:.4rem 0;overflow-x:auto;background:var(--bg)}
+.globals-list{font-family:var(--font-mono);font-size:.68rem}
+.globals-list .rd{color:var(--accent)}.globals-list .wr{color:var(--red)}.globals-list .rw{color:var(--amber)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:.5rem;margin-bottom:1rem}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.5rem;text-align:center}
+.stat-val{font-size:1.3rem;font-weight:600;font-family:var(--font-mono);color:var(--accent)}
+.stat-label{font-size:.58rem;color:var(--text3);text-transform:uppercase;margin-top:.1rem}
+@media print{.sidebar{display:none}.content{overflow:visible}.card-body{display:block!important}}
+"""
+
+    # ── Build HTML ───────────────────────────────────────
+    h = f'''<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(proj_name)} — Function Documentation</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
-<style>{SHARED_CSS}</style></head><body>
-<div class="container">
-<div class="topbar">
-  <div><h1>{esc(proj_name)}</h1><div class="sub">{len(proj_fns)} functions · {len(mods)} modules · {graph.get("files",0)} files · {now}</div></div>
-  <div><button onclick="document.body.classList.toggle('light')">◐ Theme</button> <button onclick="window.print()">⎙ Print</button>
-  <button onclick="expandAll()">▶ All</button> <button onclick="collapseAll()">▼ All</button></div>
-</div>
-<input class="search" id="search" placeholder="Search functions…" oninput="filterFns(this.value)">
+<style>{css}</style></head><body>
+<div class="shell">
+<nav class="sidebar">
+  <div class="sidebar-head">
+    <h1>{esc(proj_name)}</h1>
+    <div class="sub">{len(all_fns)} functions · {len(mods)} modules · {graph.get("files",0)} files · {now}</div>
+  </div>
+  <div class="toc" id="toc">
+    <div class="toc-fn" onclick="jumpTo('overview')" style="font-weight:500;padding-left:.8rem">◈ Overview</div>
+    <div class="toc-fn" onclick="jumpTo('index')" style="font-weight:500;padding-left:.8rem">📇 All Functions</div>
 '''
 
-    # Module legend
-    if mods:
-        html += '<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem">'
-        for m in mods:
-            c = mod_color(m, mods)
-            html += f'<span class="mod-tag" style="background:{c}1a;color:{c};border:1px solid {c}44">{esc(m)}</span>'
-        html += '</div>'
+    # Sidebar: module sections with expandable function lists
+    for mod in mods:
+        c = _mc(mod, mods)
+        mod_fns = by_mod.get(mod, [])
+        h += f'''    <div class="toc-mod" onclick="this.classList.toggle('expanded')" style="color:{c}">
+      <span class="toc-arrow">▶</span> {esc(mod)} <span style="font-size:.55rem;color:var(--text3)">({len(mod_fns)})</span>
+      <div class="toc-fns" onclick="event.stopPropagation()">'''
+        for n in mod_fns[:50]:
+            h += f'<div class="toc-fn" onclick="jumpTo(\'fn-{esc(n["id"])}\')">{esc(n["id"])}</div>'
+        if len(mod_fns) > 50:
+            h += f'<div class="toc-fn" style="color:var(--text3);font-style:italic">…+{len(mod_fns)-50} more</div>'
+        h += '</div></div>'
 
-    # Function index table
-    html += '<h2>Function Index</h2>'
-    html += '<table id="fn-table"><thead><tr><th>Function</th><th>Module</th><th>File</th><th>In</th><th>Out</th><th>Flags</th></tr></thead><tbody>'
-    for n in proj_fns:
-        mod = n.get('mod') or n.get('module') or ''
-        c = mod_color(mod, mods) if mod and mod not in ('external','.') else 'var(--text2)'
-        html += f'<tr data-fn="{esc(n["id"])}"><td><a class="fn-link" href="#fn-{esc(n["id"])}">{esc(n["id"])}</a></td>'
-        html += f'<td><span class="mod-tag" style="color:{c}">{esc(mod)}</span></td>'
-        html += f'<td style="font-size:.7rem;color:var(--text3)">{esc(n.get("file",""))}</td>'
-        html += f'<td>{n.get("in_degree",0)}</td><td>{n.get("out_degree",0)}</td>'
-        html += f'<td>{flag_badges(n)}</td></tr>'
-    html += '</tbody></table>'
+    h += f'''  </div>
+  <div class="sidebar-foot">
+    <button onclick="document.documentElement.classList.toggle('light')">◐ Theme</button>
+    <button onclick="window.print()">⎙ Print</button>
+    <button onclick="expandAll()">▶ All</button>
+    <button onclick="collapseAll()">▼ All</button>
+    <button onclick="expandMod()">▶ Mod</button>
+    <button onclick="collapseMod()">▼ Mod</button>
+  </div>
+</nav>
+<main class="content" id="content">
+'''
 
-    # Per-function cards
-    html += '<h2>Function Details</h2>'
-    for n in proj_fns:
-        fn = n['id']
-        mod = n.get('mod') or n.get('module') or ''
-        c = mod_color(mod, mods) if mod and mod not in ('external','.') else 'var(--text2)'
-        fn_callers = callers.get(fn,[])
-        fn_callees = edges.get(fn,[])
-        fn_reads = n.get('reads',[])
-        fn_writes = n.get('writes',[])
-        fn_rw = n.get('rw',[])
-        fn_periphs = n.get('peripherals',[])
-        fn_races = races_by_fn.get(fn,[])
+    # ── Overview section ─────────────────────────────────
+    n_isrs = sum(1 for n in all_fns if n.get('is_isr'))
+    n_races = len(graph.get('races',[]))
+    n_periphs = len(graph.get('peripherals',{}))
+    n_dead = sum(1 for n in all_fns if n.get('in_degree',0)==0 and not n.get('is_isr') and not n.get('is_entry') and n['id']!='main')
 
-        html += f'<div class="card" id="fn-{esc(fn)}" data-fn="{esc(fn)}">'
-        html += f'<div class="card-hdr" onclick="this.parentElement.classList.toggle(\'open\')">'
-        html += f'<span class="card-arrow">▶</span>'
-        html += f'<span class="card-title" style="color:{c}">{esc(fn)}</span>'
-        html += f'{flag_badges(n)}'
-        html += f'<span style="font-size:.62rem;color:var(--text3)">{esc(mod)} · {esc(n.get("file",""))}:{n.get("line",0)}</span>'
-        html += '</div><div class="card-body">'
+    h += f'''<div class="section" id="overview">
+  <div class="sect-title">◈ Overview</div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val">{len(all_fns)}</div><div class="stat-label">Functions</div></div>
+    <div class="stat-card"><div class="stat-val">{sum(len(v) for v in edges.values())}</div><div class="stat-label">Call Edges</div></div>
+    <div class="stat-card"><div class="stat-val">{len(mods)}</div><div class="stat-label">Modules</div></div>
+    <div class="stat-card"><div class="stat-val">{graph.get("files",0)}</div><div class="stat-label">Files</div></div>
+    <div class="stat-card"><div class="stat-val">{n_isrs}</div><div class="stat-label">ISRs</div></div>
+    <div class="stat-card"><div class="stat-val">{n_races}</div><div class="stat-label">Races</div></div>
+    <div class="stat-card"><div class="stat-val">{n_periphs}</div><div class="stat-label">Peripherals</div></div>
+    <div class="stat-card"><div class="stat-val">{n_dead}</div><div class="stat-label">Dead Code</div></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem">'''
+    for m in mods:
+        c = _mc(m, mods)
+        h += f'<span class="mod-tag" style="background:{c}15;color:{c};border:1px solid {c}30">{esc(m)} ({len(by_mod.get(m,[]))})</span>'
+    h += '</div></div>'
 
-        # Meta row
-        html += '<div class="meta-row">'
-        html += f'<div><span class="meta-label">File</span><br>{esc(n.get("file",""))}</div>'
-        html += f'<div><span class="meta-label">Line</span><br>{n.get("line",0)}</div>'
-        html += f'<div><span class="meta-label">Module</span><br><span style="color:{c}">{esc(mod)}</span></div>'
-        html += f'<div><span class="meta-label">Callers</span><br>{n.get("in_degree",0)}</div>'
-        html += f'<div><span class="meta-label">Calls</span><br>{n.get("out_degree",0)}</div>'
-        html += '</div>'
+    # ── Function Index ───────────────────────────────────
+    h += '''<div class="section" id="index">
+  <div class="sect-title">📇 All Functions</div>
+  <input class="search" id="search" placeholder="Search functions…" oninput="filterAll(this.value)">
+  <table id="fn-tbl"><thead><tr><th>Function</th><th>Module</th><th>File</th><th>In</th><th>Out</th><th>Flags</th></tr></thead><tbody>'''
 
-        # Mini call graph
-        svg = mini_svg(fn, graph, nmap, mods)
-        html += f'<div class="graph-wrap">{svg}</div>'
+    for n in all_fns:
+        mod = _mod(n)
+        c = _mc(mod, mods) if mod not in ('external','.') else 'var(--text2)'
+        h += f'<tr data-fn="{esc(n["id"])}"><td><a class="fn-link" href="#fn-{esc(n["id"])}" onclick="jumpTo(\'fn-{esc(n["id"])}\');return false">{esc(n["id"])}</a></td>'
+        h += f'<td><span style="color:{c};font-size:.68rem">{esc(mod)}</span></td>'
+        h += f'<td style="font-size:.65rem;color:var(--text3)">{esc(n.get("file",""))}</td>'
+        h += f'<td>{n.get("in_degree",0)}</td><td>{n.get("out_degree",0)}</td>'
+        h += f'<td>{_badges(n)}</td></tr>'
+    h += '</tbody></table></div>'
 
-        # Callers
-        if fn_callers:
-            html += '<div class="section-label">Called by</div><div class="list-inline">'
-            for cf in sorted(fn_callers):
-                html += f'<a class="fn-link" href="#fn-{esc(cf)}">{esc(cf)}</a>'
-            html += '</div>'
+    # ── Module Sections (each with subgraph + function cards) ──
+    for mod in mods:
+        c = _mc(mod, mods)
+        mod_fns = by_mod.get(mod, [])
+        mod_files = sorted(set(n.get('file','') for n in mod_fns if n.get('file')))
+        mod_isrs = [n for n in mod_fns if n.get('is_isr')]
+        n_dead_mod = sum(1 for n in mod_fns if n.get('in_degree',0)==0 and not n.get('is_isr') and not n.get('is_entry') and n['id']!='main')
 
-        # Callees
-        if fn_callees:
-            html += '<div class="section-label">Calls</div><div class="list-inline">'
-            for cf in sorted(fn_callees):
-                html += f'<a class="fn-link" href="#fn-{esc(cf)}">{esc(cf)}</a>'
-            html += '</div>'
+        h += f'<div class="section" id="mod-{esc(mod)}">'
+        h += f'<div class="sect-title" style="color:{c}">📦 {esc(mod)}</div>'
+        h += f'<div style="font-size:.75rem;color:var(--text2);margin-bottom:.5rem">{len(mod_fns)} functions · {len(mod_files)} files'
+        if mod_isrs: h += f' · {len(mod_isrs)} ISRs'
+        if n_dead_mod: h += f' · {n_dead_mod} dead code candidates'
+        h += '</div>'
+        h += f'<div style="font-size:.7rem;color:var(--text3);margin-bottom:.6rem">Files: {", ".join(esc(f) for f in mod_files[:10])}{"…" if len(mod_files)>10 else ""}</div>'
 
-        # Globals
-        if fn_reads or fn_writes or fn_rw:
-            html += '<div class="section-label">Globals</div><div class="globals-list">'
-            if fn_reads: html += f'<div><span class="read">reads:</span> {", ".join(esc(g) for g in fn_reads)}</div>'
-            if fn_writes: html += f'<div><span class="write">writes:</span> {", ".join(esc(g) for g in fn_writes)}</div>'
-            if fn_rw: html += f'<div><span class="rw">read+write:</span> {", ".join(esc(g) for g in fn_rw)}</div>'
-            html += '</div>'
+        # Mini module subgraph (top 30 functions by connectivity)
+        top_fns = sorted(mod_fns, key=lambda n: -(n.get('in_degree',0)+n.get('out_degree',0)))[:30]
+        mod_fn_set = {n['id'] for n in top_fns}
+        if len(top_fns) >= 2:
+            NW, NH, INDENT, VGAP, PAD = 110, 22, 25, 6, 12
+            # Simple layering by in-degree within module
+            in_d = {n['id']:0 for n in top_fns}
+            for n in top_fns:
+                for callee in edges.get(n['id'],[]):
+                    if callee in in_d: in_d[callee] += 1
+            layer = {}
+            q_lay = [f for f,d in in_d.items() if d==0]
+            if not q_lay: q_lay = [top_fns[0]['id']]
+            vis_lay = set()
+            while q_lay:
+                fn = q_lay.pop(0)
+                if fn in vis_lay: continue
+                vis_lay.add(fn); layer[fn] = layer.get(fn, 0)
+                for callee in edges.get(fn,[]):
+                    if callee in mod_fn_set and callee not in vis_lay:
+                        layer[callee] = max(layer.get(callee,0), layer[fn]+1)
+                        q_lay.append(callee)
+            for n in top_fns:
+                if n['id'] not in layer: layer[n['id']] = 0
 
-        # Peripherals
-        if fn_periphs:
-            html += f'<div class="section-label">Peripherals</div><div style="font-family:var(--font);font-size:.72rem;color:var(--amber)">{", ".join(esc(p) for p in fn_periphs)}</div>'
+            by_layer = defaultdict(list)
+            for fn, l in layer.items(): by_layer[l].append(fn)
+            layer_nums = sorted(by_layer.keys())
+            max_col = max(len(by_layer[l]) for l in layer_nums) if layer_nums else 1
+            sg_w = len(layer_nums)*(NW+INDENT*2)+PAD*2
+            sg_h = max_col*(NH+VGAP)+PAD*2
+            svg_lines = [f'<svg width="{sg_w}" height="{sg_h}" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%">']
+            sg_pos = {}
+            for li, l in enumerate(layer_nums):
+                fns_in_l = by_layer[l]
+                col_h = len(fns_in_l)*(NH+VGAP)
+                y_off = (sg_h-col_h)/2
+                for fi, fn in enumerate(fns_in_l):
+                    x = PAD + li*(NW+INDENT*2)
+                    y = y_off + fi*(NH+VGAP)
+                    sg_pos[fn] = (x, y)
+                    nd = nmap.get(fn,{})
+                    label = fn if len(fn)<=13 else fn[:11]+'…'
+                    svg_lines.append(f'<rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="4" fill="{c}0d" stroke="{c}" stroke-width="1.2"/>')
+                    svg_lines.append(f'<text x="{x+NW/2}" y="{y+NH/2}" text-anchor="middle" dominant-baseline="middle" font-size="7.5" font-family="monospace" fill="{c}">{esc(label)}</text>')
+            # Internal edges
+            for fn in mod_fn_set:
+                for callee in edges.get(fn,[]):
+                    if callee in sg_pos and fn in sg_pos:
+                        x1, y1 = sg_pos[fn]; x2, y2 = sg_pos[callee]
+                        svg_lines.append(f'<path d="M{x1+NW},{y1+NH/2} C{x1+NW+INDENT},{y1+NH/2} {x2-INDENT},{y2+NH/2} {x2},{y2+NH/2}" fill="none" stroke="{c}40" stroke-width="1"/>')
+            svg_lines.append('</svg>')
+            h += f'<div class="graph-wrap">{"".join(svg_lines)}</div>'
 
-        # Races
-        if fn_races:
-            html += '<div class="section-label">Race involvement</div>'
-            for r in fn_races:
-                sev_col = '#f87171' if r.get('severity')=='high' else '#fbbf24' if r.get('severity')=='medium' else '#4ade80'
-                html += f'<div style="font-size:.7rem;margin:.15rem 0"><span style="color:{sev_col}">●</span> {esc(r.get("var",""))} — ISR: {", ".join(r.get("isr_writers",[]))} · task: {esc(r.get("task_fn",""))} · {"protected" if r.get("protected") else "unprotected"}</div>'
+        # Function cards
+        for n in mod_fns:
+            fn = n['id']
+            fn_callers = callers.get(fn,[])
+            fn_callees = edges.get(fn,[])
+            fn_reads = n.get('reads',[])
+            fn_writes = n.get('writes',[])
+            fn_periphs = n.get('peripherals',[])
+            fn_races = races_by_fn.get(fn,[])
 
-        html += '</div></div>'  # card-body, card
+            h += f'<div class="card" id="fn-{esc(fn)}" data-fn="{esc(fn)}" data-mod="{esc(mod)}">'
+            h += f'<div class="card-hdr" onclick="this.parentElement.classList.toggle(\'open\')">'
+            h += f'<span class="card-arrow">▶</span>'
+            h += f'<span class="card-title" style="color:{c}">{esc(fn)}</span>'
+            h += f'{_badges(n)}'
+            h += f'<span style="font-size:.58rem;color:var(--text3)">{esc(n.get("file",""))}:{n.get("line",0)}</span>'
+            h += '</div><div class="card-body">'
 
-    # Footer
-    html += f'<div style="text-align:center;padding:2rem 0;font-size:.65rem;color:var(--text3)">Generated by Callgraph Studio · {now} · {len(proj_fns)} functions · {len(mods)} modules</div>'
+            # Meta
+            h += '<div class="meta-row">'
+            h += f'<div><span class="meta-label">File</span><br>{esc(n.get("file",""))}</div>'
+            h += f'<div><span class="meta-label">Line</span><br>{n.get("line",0)}</div>'
+            h += f'<div><span class="meta-label">Callers</span><br>{n.get("in_degree",0)}</div>'
+            h += f'<div><span class="meta-label">Calls</span><br>{n.get("out_degree",0)}</div>'
+            h += '</div>'
 
-    # JS
-    html += '''
+            # Mini call graph
+            svg = _mini_svg(fn, graph, nmap, mods)
+            h += f'<div class="graph-wrap">{svg}</div>'
+
+            # Callers
+            if fn_callers:
+                h += f'<div class="sect-label">Called by ({len(fn_callers)})</div><div style="display:flex;flex-wrap:wrap;gap:.3rem">'
+                for cf in sorted(fn_callers):
+                    h += f'<a class="fn-link" href="#fn-{esc(cf)}" onclick="jumpTo(\'fn-{esc(cf)}\');return false">{esc(cf)}</a>'
+                h += '</div>'
+
+            # Callees
+            if fn_callees:
+                h += f'<div class="sect-label">Calls ({len(fn_callees)})</div><div style="display:flex;flex-wrap:wrap;gap:.3rem">'
+                for cf in sorted(fn_callees):
+                    h += f'<a class="fn-link" href="#fn-{esc(cf)}" onclick="jumpTo(\'fn-{esc(cf)}\');return false">{esc(cf)}</a>'
+                h += '</div>'
+
+            # Globals
+            if fn_reads or fn_writes:
+                h += '<div class="sect-label">Globals</div><div class="globals-list">'
+                if fn_reads: h += f'<div><span class="rd">reads:</span> {", ".join(esc(g) for g in fn_reads)}</div>'
+                if fn_writes: h += f'<div><span class="wr">writes:</span> {", ".join(esc(g) for g in fn_writes)}</div>'
+                h += '</div>'
+
+            # Peripherals
+            if fn_periphs:
+                h += f'<div class="sect-label">Peripherals</div><div style="font-family:var(--font-mono);font-size:.68rem;color:var(--amber)">{", ".join(esc(p) for p in fn_periphs)}</div>'
+
+            # Races
+            if fn_races:
+                h += '<div class="sect-label">Race involvement</div>'
+                for r in fn_races:
+                    sc = '#f87171' if r.get('severity')=='high' else '#fbbf24'
+                    h += f'<div style="font-size:.68rem"><span style="color:{sc}">●</span> {esc(r.get("var",""))} — ISR: {", ".join(r.get("isr_writers",[]))} · {"protected" if r.get("protected") else "UNPROTECTED"}</div>'
+
+            h += '</div></div>'  # card-body, card
+
+    # ── Footer ───────────────────────────────────────────
+    h += f'<div style="text-align:center;padding:2rem 0;font-size:.62rem;color:var(--text3);border-top:1px solid var(--border)">Generated by Callgraph Studio · {now} · {len(all_fns)} functions · {len(mods)} modules</div>'
+
+    # ── JS ───────────────────────────────────────────────
+    h += '''
 <script>
-function filterFns(q){
+function jumpTo(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  if(el.classList.contains('card')) el.classList.add('open');
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function filterAll(q){
   const ql=q.toLowerCase();
   document.querySelectorAll('.card[data-fn]').forEach(c=>{
     c.style.display=c.dataset.fn.toLowerCase().includes(ql)?'':'none';
   });
-  document.querySelectorAll('#fn-table tbody tr').forEach(r=>{
-    r.style.display=r.dataset.fn.toLowerCase().includes(ql)?'':'none';
+  document.querySelectorAll('#fn-tbl tbody tr').forEach(r=>{
+    r.style.display=(r.dataset.fn||'').toLowerCase().includes(ql)?'':'none';
   });
 }
 function expandAll(){document.querySelectorAll('.card').forEach(c=>c.classList.add('open'));}
 function collapseAll(){document.querySelectorAll('.card').forEach(c=>c.classList.remove('open'));}
-// Auto-open card from hash
+function expandMod(){document.querySelectorAll('.toc-mod').forEach(m=>m.classList.add('expanded'));}
+function collapseMod(){document.querySelectorAll('.toc-mod').forEach(m=>m.classList.remove('expanded'));}
+// Auto-open from hash
 if(location.hash){const el=document.querySelector(location.hash);if(el&&el.classList.contains('card'))el.classList.add('open');}
-window.addEventListener('hashchange',()=>{const el=document.querySelector(location.hash);if(el&&el.classList.contains('card')){el.classList.add('open');el.scrollIntoView({behavior:'smooth'});}});
+window.addEventListener('hashchange',()=>{const el=document.querySelector(location.hash);if(el){if(el.classList.contains('card'))el.classList.add('open');el.scrollIntoView({behavior:'smooth'});}});
 </script>
-</div></body></html>'''
+'''
+    h += '</main></div></body></html>'
+    return h
 
-    return html
 
-
-# ── Multi-file generator ─────────────────────────────────────
+# ══════════════════════════════════════════════════════════
+# MULTI-FILE (unchanged from v1, imports from above)
+# ══════════════════════════════════════════════════════════
 
 def build_multi(graph):
-    """Build a ZIP with index.html + per-function + per-module pages."""
-    nmap = _node_map(graph)
+    nmap = _nmap(graph)
     mods = [m for m in graph.get('mods',[]) if m not in ('external','.')]
     proj_fns = sorted([n for n in graph['nodes'] if n.get('type')=='project'], key=lambda n: n['id'])
     proj_name = Path(graph.get('source','project')).name
@@ -307,181 +428,96 @@ def build_multi(graph):
         races_by_fn[r.get('task_fn','')].append(r)
         for iw in r.get('isr_writers',[]): races_by_fn[iw].append(r)
 
+    SHARED_CSS = """*{box-sizing:border-box;margin:0;padding:0}:root{--bg:#0c0e14;--bg2:#12151e;--bg3:#181c28;--text:#dce0ec;--text2:#8890a8;--text3:#555a6c;--accent:#60a5fa;--border:#2a2f3e;--font:'IBM Plex Mono',monospace}
+.light{--bg:#f5f5f0;--bg2:#fff;--bg3:#eaeae2;--text:#1a1a18;--text2:#555;--text3:#888;--accent:#2563eb;--border:#c8c8bc}
+body{font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);line-height:1.6}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.container{max-width:1000px;margin:0 auto;padding:1.5rem}
+h1{font-family:'Source Serif 4',Georgia,serif;font-size:1.6rem;margin-bottom:.3rem}
+h2{font-size:1.1rem;margin:1.5rem 0 .5rem;border-bottom:1px solid var(--border);padding-bottom:.3rem}
+.sub{font-size:.72rem;color:var(--text3);margin-bottom:1rem}
+table{width:100%;border-collapse:collapse;font-size:.75rem}th{text-align:left;padding:.35rem .5rem;border-bottom:2px solid var(--border);color:var(--text3);font-size:.6rem;text-transform:uppercase}
+td{padding:.3rem .5rem;border-bottom:1px solid var(--border)}tr:hover td{background:var(--bg3)}
+.fn-link{font-family:var(--font);color:var(--accent)}.bdg{font-size:.55rem;padding:.08rem .25rem;border-radius:3px;margin-right:.15rem}
+.graph-wrap{border:1px solid var(--border);border-radius:6px;padding:.4rem;margin:.5rem 0;overflow-x:auto;background:var(--bg)}"""
+
     buf = io.BytesIO()
     zf = zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED)
-
-    # style.css
     zf.writestr('assets/style.css', SHARED_CSS)
 
-    def page_head(title, css_path='assets/style.css'):
-        return f'''<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{esc(title)}</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{css_path}"></head><body><div class="container">'''
-
-    def page_foot(back_link='index.html', back_label='← Index'):
-        return f'<div style="margin-top:2rem;padding:1rem 0;border-top:1px solid var(--border);font-size:.72rem;color:var(--text3)"><a href="{back_link}">{back_label}</a> · Generated by Callgraph Studio · {now}</div></div></body></html>'
-
+    def pg_head(title, css='assets/style.css'):
+        return f'<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)}</title><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="{css}"></head><body><div class="container">'
+    def pg_foot(back='index.html'):
+        return f'<div style="margin-top:2rem;padding:1rem 0;border-top:1px solid var(--border);font-size:.7rem;color:var(--text3)"><a href="{back}">← Index</a> · Callgraph Studio · {now}</div></div></body></html>'
     def fn_link(fn, prefix='functions/'):
         safe = re.sub(r'[^a-zA-Z0-9_]', '_', fn)
         return f'<a class="fn-link" href="{prefix}{safe}.html">{esc(fn)}</a>'
 
-    # ── Index page ───────────────────────────────────────────
-    idx = page_head(f'{proj_name} — Documentation', 'assets/style.css')
-    idx += f'''<div class="topbar"><div><h1>{esc(proj_name)}</h1>
-<div class="sub">{len(proj_fns)} functions · {len(mods)} modules · {graph.get("files",0)} files · {now}</div></div>
-<div><button onclick="document.body.classList.toggle('light')">◐ Theme</button></div></div>'''
-
-    # Module links
+    # Index
+    idx = pg_head(f'{proj_name} — Docs', 'assets/style.css')
+    idx += f'<h1>{esc(proj_name)}</h1><div class="sub">{len(proj_fns)} functions · {len(mods)} modules · {now}</div>'
     if mods:
         idx += '<h2>Modules</h2><div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">'
         for m in mods:
-            c = mod_color(m, mods)
-            safe_m = re.sub(r'[^a-zA-Z0-9_]', '_', m)
-            idx += f'<a href="modules/{safe_m}.html" class="mod-tag" style="background:{c}1a;color:{c};border:1px solid {c}44;text-decoration:none">{esc(m)}</a>'
+            c = _mc(m, mods); safe_m = re.sub(r'[^a-zA-Z0-9_]','_',m)
+            idx += f'<a href="modules/{safe_m}.html" style="background:{c}15;color:{c};border:1px solid {c}30;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;text-decoration:none">{esc(m)}</a>'
         idx += '</div>'
-
-    # Function table
-    idx += '<h2>All Functions</h2>'
-    idx += '<input class="search" placeholder="Search…" oninput="let q=this.value.toLowerCase();document.querySelectorAll(\'#ft tbody tr\').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?\'\':\'none\')">'
-    idx += '<table id="ft"><thead><tr><th>Function</th><th>Module</th><th>File</th><th>In</th><th>Out</th><th>Flags</th></tr></thead><tbody>'
+    idx += '<h2>Functions</h2><table><thead><tr><th>Function</th><th>Module</th><th>File</th><th>In</th><th>Out</th></tr></thead><tbody>'
     for n in proj_fns:
-        mod = n.get('mod') or n.get('module') or ''
-        c = mod_color(mod, mods) if mod and mod not in ('external','.') else 'var(--text2)'
-        idx += f'<tr><td>{fn_link(n["id"])}</td><td><span style="color:{c}">{esc(mod)}</span></td>'
-        idx += f'<td style="font-size:.7rem;color:var(--text3)">{esc(n.get("file",""))}</td>'
-        idx += f'<td>{n.get("in_degree",0)}</td><td>{n.get("out_degree",0)}</td><td>{flag_badges(n)}</td></tr>'
-    idx += '</tbody></table>'
-    idx += page_foot('', '')
+        mod = _mod(n); c = _mc(mod, mods) if mod not in ('external','.') else '#888'
+        idx += f'<tr><td>{fn_link(n["id"])}</td><td style="color:{c}">{esc(mod)}</td><td style="font-size:.65rem;color:var(--text3)">{esc(n.get("file",""))}</td><td>{n.get("in_degree",0)}</td><td>{n.get("out_degree",0)}</td></tr>'
+    idx += '</tbody></table>' + pg_foot('')
     zf.writestr('index.html', idx)
 
-    # ── Per-function pages ───────────────────────────────────
+    # Per-function
     for n in proj_fns:
-        fn = n['id']
-        safe_fn = re.sub(r'[^a-zA-Z0-9_]', '_', fn)
-        mod = n.get('mod') or n.get('module') or ''
-        c = mod_color(mod, mods) if mod and mod not in ('external','.') else 'var(--text2)'
-        fn_callers = callers_map.get(fn,[])
-        fn_callees = edges.get(fn,[])
-
-        pg = page_head(fn, '../assets/style.css')
-        pg += f'<h1 style="color:{c}">{esc(fn)}</h1>'
-        pg += f'<div class="sub">{esc(n.get("file",""))}:{n.get("line",0)} · module: <span style="color:{c}">{esc(mod)}</span> · {flag_badges(n)}</div>'
-
-        # Mini SVG
-        svg = mini_svg(fn, graph, nmap, mods)
-        pg += f'<h2>Call Graph</h2><div class="graph-wrap">{svg}</div>'
-
-        # Meta
-        pg += '<div class="meta-row">'
-        pg += f'<div><span class="meta-label">Callers</span><br>{n.get("in_degree",0)}</div>'
-        pg += f'<div><span class="meta-label">Calls</span><br>{n.get("out_degree",0)}</div>'
-        pg += f'<div><span class="meta-label">Type</span><br>{n.get("type","")}</div>'
-        pg += '</div>'
-
-        if fn_callers:
-            pg += '<h3>Called by</h3><div class="list-inline">'
-            for cf in sorted(fn_callers): pg += fn_link(cf, '')
-            pg += '</div>'
-
-        if fn_callees:
-            pg += '<h3>Calls</h3><div class="list-inline">'
-            for cf in sorted(fn_callees): pg += fn_link(cf, '')
-            pg += '</div>'
-
-        # Globals
-        reads, writes, rw = n.get('reads',[]), n.get('writes',[]), n.get('rw',[])
-        if reads or writes or rw:
-            pg += '<h3>Globals</h3><div class="globals-list">'
-            if reads: pg += f'<div><span class="read">reads:</span> {", ".join(esc(g) for g in reads)}</div>'
-            if writes: pg += f'<div><span class="write">writes:</span> {", ".join(esc(g) for g in writes)}</div>'
-            if rw: pg += f'<div><span class="rw">read+write:</span> {", ".join(esc(g) for g in rw)}</div>'
-            pg += '</div>'
-
-        periphs = n.get('peripherals',[])
-        if periphs:
-            pg += f'<h3>Peripherals</h3><div style="font-family:var(--font);font-size:.75rem;color:var(--amber)">{", ".join(esc(p) for p in periphs)}</div>'
-
-        fn_races = races_by_fn.get(fn,[])
-        if fn_races:
-            pg += '<h3>Race Involvement</h3>'
-            for r in fn_races:
-                sev_col = '#f87171' if r.get('severity')=='high' else '#fbbf24' if r.get('severity')=='medium' else '#4ade80'
-                pg += f'<div style="font-size:.75rem;margin:.2rem 0"><span style="color:{sev_col}">●</span> {esc(r.get("var",""))} — {", ".join(r.get("isr_writers",[]))} ↔ {esc(r.get("task_fn",""))}</div>'
-
-        pg += page_foot('../index.html')
+        fn = n['id']; safe_fn = re.sub(r'[^a-zA-Z0-9_]','_',fn)
+        mod = _mod(n); c = _mc(mod, mods) if mod not in ('external','.') else '#888'
+        pg = pg_head(fn, '../assets/style.css')
+        pg += f'<h1 style="color:{c}">{esc(fn)}</h1><div class="sub">{esc(n.get("file",""))}:{n.get("line",0)} · {esc(mod)} · {_badges(n)}</div>'
+        pg += f'<div class="graph-wrap">{_mini_svg(fn, graph, nmap, mods)}</div>'
+        fc = callers_map.get(fn,[])
+        fe = edges.get(fn,[])
+        if fc: pg += f'<h2>Called by</h2><div style="display:flex;flex-wrap:wrap;gap:.3rem">{"".join(fn_link(cf,"") for cf in sorted(fc))}</div>'
+        if fe: pg += f'<h2>Calls</h2><div style="display:flex;flex-wrap:wrap;gap:.3rem">{"".join(fn_link(cf,"") for cf in sorted(fe))}</div>'
+        rd,wr = n.get('reads',[]),n.get('writes',[])
+        if rd or wr:
+            pg += '<h2>Globals</h2>'
+            if rd: pg += f'<div style="color:var(--accent);font-size:.75rem">reads: {", ".join(esc(g) for g in rd)}</div>'
+            if wr: pg += f'<div style="color:#f87171;font-size:.75rem">writes: {", ".join(esc(g) for g in wr)}</div>'
+        pp = n.get('peripherals',[])
+        if pp: pg += f'<h2>Peripherals</h2><div style="color:#fbbf24;font-size:.75rem">{", ".join(esc(p) for p in pp)}</div>'
+        pg += pg_foot('../index.html')
         zf.writestr(f'functions/{safe_fn}.html', pg)
 
-    # ── Per-module pages ─────────────────────────────────────
+    # Per-module
     for mod in mods:
-        safe_m = re.sub(r'[^a-zA-Z0-9_]', '_', mod)
-        c = mod_color(mod, mods)
-        mod_fns = [n for n in proj_fns if (n.get('mod') or n.get('module')) == mod]
-        mod_files = sorted(set(n.get('file','') for n in mod_fns if n.get('file')))
-
-        pg = page_head(f'Module: {mod}', '../assets/style.css')
-        pg += f'<h1 style="color:{c}">{esc(mod)}</h1>'
-        pg += f'<div class="sub">{len(mod_fns)} functions · {len(mod_files)} files</div>'
-
-        pg += '<h2>Files</h2><div style="font-family:var(--font);font-size:.78rem">'
-        for f in mod_files: pg += f'<div>{esc(f)}</div>'
-        pg += '</div>'
-
-        pg += '<h2>Functions</h2>'
-        pg += '<table><thead><tr><th>Function</th><th>In</th><th>Out</th><th>Flags</th></tr></thead><tbody>'
+        safe_m = re.sub(r'[^a-zA-Z0-9_]','_',mod); c = _mc(mod, mods)
+        mod_fns = sorted([n for n in proj_fns if _mod(n)==mod], key=lambda n:n['id'])
+        files = sorted(set(n.get('file','') for n in mod_fns if n.get('file')))
+        pg = pg_head(f'Module: {mod}', '../assets/style.css')
+        pg += f'<h1 style="color:{c}">{esc(mod)}</h1><div class="sub">{len(mod_fns)} functions · {len(files)} files</div>'
+        pg += '<h2>Functions</h2><table><thead><tr><th>Function</th><th>In</th><th>Out</th></tr></thead><tbody>'
         for n in mod_fns:
-            pg += f'<tr><td>{fn_link(n["id"],"../functions/")}</td><td>{n.get("in_degree",0)}</td><td>{n.get("out_degree",0)}</td><td>{flag_badges(n)}</td></tr>'
-        pg += '</tbody></table>'
-
-        # Cross-module dependencies
-        cross_out = defaultdict(int)
-        cross_in = defaultdict(int)
-        for key, count in graph.get('mod_edges',{}).items():
-            parts = key.split('→')
-            if len(parts)==2:
-                if parts[0]==mod and parts[1]!=mod: cross_out[parts[1]] += count
-                if parts[1]==mod and parts[0]!=mod: cross_in[parts[0]] += count
-
-        if cross_out or cross_in:
-            pg += '<h2>Dependencies</h2>'
-            if cross_out:
-                pg += '<h3>Depends on</h3><div class="list-inline">'
-                for m2, cnt in sorted(cross_out.items(), key=lambda x:-x[1]):
-                    safe_m2 = re.sub(r'[^a-zA-Z0-9_]', '_', m2)
-                    pg += f'<a href="{safe_m2}.html" style="color:{mod_color(m2,mods)}">{esc(m2)} ({cnt})</a>'
-                pg += '</div>'
-            if cross_in:
-                pg += '<h3>Used by</h3><div class="list-inline">'
-                for m2, cnt in sorted(cross_in.items(), key=lambda x:-x[1]):
-                    safe_m2 = re.sub(r'[^a-zA-Z0-9_]', '_', m2)
-                    pg += f'<a href="{safe_m2}.html" style="color:{mod_color(m2,mods)}">{esc(m2)} ({cnt})</a>'
-                pg += '</div>'
-
-        pg += page_foot('../index.html')
+            pg += f'<tr><td>{fn_link(n["id"],"../functions/")}</td><td>{n.get("in_degree",0)}</td><td>{n.get("out_degree",0)}</td></tr>'
+        pg += '</tbody></table>' + pg_foot('../index.html')
         zf.writestr(f'modules/{safe_m}.html', pg)
 
     zf.close()
     return buf.getvalue()
 
 
-# ── CLI ──────────────────────────────────────────────────────
-
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Callgraph Studio Docs Generator')
-    parser.add_argument('graph_json', help='Path to graph JSON')
-    parser.add_argument('-o', '--output', default='docs.html')
-    parser.add_argument('--mode', choices=['single','multi'], default='single')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('graph_json')
+    parser.add_argument('-o','--output',default='docs.html')
+    parser.add_argument('--mode',choices=['single','multi'],default='single')
     args = parser.parse_args()
-
     graph = json.loads(Path(args.graph_json).read_text())
     if args.mode == 'single':
-        html = build_single(graph)
-        Path(args.output).write_text(html, encoding='utf-8')
-        print(f"Single-file docs: {args.output} ({len(html)} bytes)")
+        Path(args.output).write_text(build_single(graph), encoding='utf-8')
     else:
-        data = build_multi(graph)
-        out = args.output if args.output.endswith('.zip') else args.output + '.zip'
-        Path(out).write_bytes(data)
-        print(f"Multi-file docs: {out} ({len(data)} bytes)")
+        out = args.output if args.output.endswith('.zip') else args.output+'.zip'
+        Path(out).write_bytes(build_multi(graph))
+    print(f"Done: {args.output}")
