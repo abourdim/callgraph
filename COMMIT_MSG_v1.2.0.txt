@@ -1,0 +1,108 @@
+feat: Callgraph Studio v1.2.0
+
+═══════════════════════════════════════════════════════
+  Callgraph Studio  v1.2.0
+  C · Interactive Call Graph Explorer
+═══════════════════════════════════════════════════════
+
+SUMMARY
+  64/64 tests passing
+  +248 lines since v1.1.0 (3,789 total in index.html)
+
+── BUG FIXES ─────────────────────────────────────────
+
+[FIX 1] Dead code false positives on ISRs and entry points
+  - Previously only name-pattern matching (main, ISR_, init_, etc.)
+  - Now respects analyzer-computed is_isr and is_entry node flags
+  - Eliminates false positives for handlers like TIM2_IRQHandler
+
+── ANALYSIS FEATURES ─────────────────────────────────
+
+[ANA 1] Cycle Detection (Tarjan SCC)
+  - New "↻ Cycles" analysis button
+  - Tarjan's SCC algorithm on full project call graph
+  - Reports mutual call cycles (≥2 nodes) and self-recursive functions
+  - Clickable cycle members → trace function
+  - "Highlight in graph" button: rings cycle nodes red, fades others
+  - Confirms DAG structure when no cycles found (prerequisite for stack depth)
+
+[ANA 2] Worst-Case Stack Depth
+  - New "⬆ Stack depth" analysis button
+  - DFS from every detected entry point (ISR, main, init_*, is_entry, is_isr)
+  - Cycle-breaking DFS — produces lower bound when cycles exist
+  - Top 8 deepest chains shown, colour-coded: green <8, amber 8–12, red >12
+  - "Show chain" button highlights the full chain in the graph (purple, graduated)
+  - Depth counts critical for RTOS task stack sizing and MISRA compliance
+
+── WORKFLOW IMPROVEMENTS ─────────────────────────────
+
+[UX 1] JSON graph export
+  - New JSON button in graph toolbar
+  - Exports: all node metadata (ISR, critical, peripheral, globals, RTOS, file:line),
+    all directed edges, full globals map, race candidates
+  - Machine-readable; suitable for CI scripts, coverage tools, custom analysis
+
+[UX 2] CSV edge export
+  - New CSV button in graph toolbar
+  - One row per edge: caller,callee,caller_module,callee_module,caller_file,callee_file
+  - Pipe directly into Python/awk/Excel pivot tables
+
+[UX 3] Right-click context menu on graph nodes
+  - Context menu on any graph node:
+    Trace · Info panel · Copy name · Copy file:line
+    Highlight callers (↑, 3-level BFS, green glow)
+    Highlight callees (↓, 3-level BFS, blue glow)
+    Collapse/expand subtree
+    Find in function list
+  - Auto-hides on click-away or Escape
+
+[UX 4] Session restores trace state
+  - Previously session restore only reloaded graph data
+  - Now also restores: tracedFn, depth slider value, fn/module mode
+
+[UX 5] fn-list filter chips (ISR / Entry / Critical / Periph)
+  - Four one-click filter chips above the function list
+  - Stack with text search and sort; chips reset on re-index
+
+[UX 6] fn-list sort options (in / out / alpha / file)
+  - Replaces fixed in_degree sort
+  - Persists until re-index
+
+[UX 7] fn-list search by file + module
+  - Previously name-only; now matches file path and module name
+
+[UX 8] fn-list empty state + count indicator
+  - "No functions match" when filter returns 0
+  - "Showing 400 of N" when list is capped
+
+[UX 9] fn-list module badge
+  - Each function item shows truncated module name in accent colour
+
+[UX 10] Peripheral panel filter input
+  - Filter input above peripheral list (same UX as globals panel)
+
+[UX 11] Trace autocomplete shows filename
+  - Function name dropdown now shows source filename right-aligned (dimmed)
+  - Disambiguates init() in motor.c vs init() in sensors.c
+
+[UX 12] Info panel function name copies on click
+  - Clicking the function name at top of info panel copies to clipboard
+
+[UX 13] Highlight global touchers from info panel
+  - Clicking a global in Writes/Reads/RW highlights all graph nodes
+    that touch that global (amber glow), fades others to 15%
+
+[UX 14] fn-list chips + sort reset on re-index
+  - Prevents stale filter state when switching projects
+
+[UX 15] Keyboard shortcut reference overlay
+  - Press ? to show all 14 shortcuts in a modal overlay
+
+[UX 16] fn-list collapse "Show chain" feedback
+  - Empty graph shows "All subtrees collapsed — click + to expand"
+
+── POLISH ────────────────────────────────────────────
+
+[P 1] Path result tooltips — full fn name on truncated path nodes
+[P 2] Collapse button descriptive tooltip
+[P 3] kbd CSS for shortcut overlay

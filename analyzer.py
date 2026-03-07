@@ -601,6 +601,7 @@ def analyze_project(source_files, src_root, push_fn=None):
             'id':           fn,
             'file':         data.get('file', ''),
             'mod':          data.get('mod', 'external'),
+            'module':       data.get('mod', 'external'),   # alias for frontend
             'line':         data.get('line', 0),
             'type':         'project' if fn in proj_fns else 'external',
             'is_isr':       data.get('is_isr', False),
