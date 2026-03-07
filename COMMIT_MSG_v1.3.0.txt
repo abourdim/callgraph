@@ -3,72 +3,62 @@ feat: Callgraph Studio v1.3.0
 ═══════════════════════════════════════════════════════
   Callgraph Studio  v1.3.0
   C · Interactive Call Graph Explorer
+  249/249 tests · 39/39 smoke · 6,885 lines total
 ═══════════════════════════════════════════════════════
 
-SUMMARY
-  +399 lines since v1.2.0 (4,188 total in index.html, 502 in server.py)
+── FILES ─────────────────────────────────────────────
+
+  index.html      4,199 lines  (+410)  UI + SVG renderer
+  server.py         502 lines  (+21)   Flask backend
+  analyzer.py       649 lines  (0)     tree-sitter engine
+  start.sh          321 lines  (0)     TUI launcher
+  test_suite.py     859 lines  (NEW)   249 automated tests
+  smoke_test.py     355 lines  (NEW)   39 end-to-end tests
 
 ── BUG FIXES ─────────────────────────────────────────
 
 [FIX 1] Stack depth exponential DFS → memoized DP
-  - Previous longestPath() was O(2^n) on dense graphs, hung on 500+ fns
-  - New: memoized DFS with cycle-breaking via onStack set
-  - Each node computed once, cached in _memo: O(V+E) total
-  - Handles cyclic graphs gracefully (breaks at cycle, notes lower bound)
+  - Previous longestPath() was O(2^n), hung on 500+ fns
+  - Memoized DFS with cycle-breaking via onStack set
+  - Each node computed once: O(V+E) total
+
+[FIX 2] Module color alpha
+  - #4a8fff12 → #4a8fff1a (proper 10% hex opacity)
+
+[FIX 3] Panel mutual exclusion
+  - Opening any side panel now closes the source panel
+
+[FIX 4] State reset on re-index
+  - newIndex() resets traceDir, closes source/bookmarks
+
+[FIX 5] Session persistence
+  - traceDir saved and restored with session
+
+[FIX 6] String injection safety
+  - esc() helper for inline onclick attributes
+
+[FIX 7] anaSetActive coverage
+  - Now covers all 7 analysis buttons
 
 ── NEW FEATURES ──────────────────────────────────────
 
 [FEAT 1] Auto-trace main on startup
-  - After indexing, auto-traces main() (or first is_entry node) at depth 3
-  - Only activates when graph has >20 nodes (small projects show full graph)
-  - Toast notification: "Traced from main — clear to see full graph"
-  - Gives meaningful first view instead of "graph too large" error
+  - Traces main() or first is_entry at depth 3 (if >20 nodes)
 
 [FEAT 2] Trace direction toggle (Both / ↓ Down / ↑ Up)
-  - 3-state pill control in sidebar below depth slider
-  - "Down": shows only callees (downstream tree) — no callers block
-  - "Up": shows only callers (upstream tree) — no callees block
-  - "Both": original behavior (callers + callees)
-  - Applies to buildVisibleGraph() BFS; instant re-render
+  - 3-state pill, hides callers or callees block
 
 [FEAT 3] Module-aware trace nodes
-  - Nodes color-coded by module (18-color palette)
-  - Module name shown as second line on each node (dimmed, smaller font)
-  - Module color legend appears bottom-left of canvas when >1 module visible
-  - Node height increased 36→46px to accommodate module label
-  - Trace role colors (caller=red, callee=green, focused=white) still override
-  - External nodes retain neutral styling
+  - 18-color palette, module label on nodes, legend
 
 [FEAT 4] Diff mode (⚖)
-  - New analysis button: ⚖ Diff
-  - Save current graph as baseline snapshot (localStorage)
-  - Re-index after changes, then diff: shows added/removed/changed functions
-  - Changed = same function name but different callee edge set
-  - Added/removed shown with +/- prefix, color-coded green/red/amber
-  - "Highlight in graph" button overlays diff markers on visible graph
-  - "Update baseline" button to set new snapshot
-  - Edge diff detail: shows +new_callee / -lost_callee per changed function
+  - Snapshot baseline, re-index, show added/removed/changed
 
 [FEAT 5] Source annotation view (📄)
-  - New /api/source endpoint reads .c files with path traversal protection
-  - Accessible from: info panel (📄 button), context menu ("View source")
-  - Slide-in panel (right side, 50% width) shows full file with:
-    · Line numbers in gutter
-    · Function definition lines highlighted
-    · Inline badges: callers↓ calls→ count, ⚡ISR, ☠dead, ⚠race, ◈periph
-    · Click any function line → trace that function
-  - Auto-scrolls to first function definition on open
+  - /api/source endpoint, slide-in panel, inline badges
 
 [FEAT 6] Persistent bookmarks (★)
-  - Star any function from info panel or right-click context menu
-  - Stored in localStorage (survives session expiry, separate from graph cache)
-  - ★ button in graph toolbar with badge count
-  - Bookmarks panel: sorted list, module label, click to trace, click ★ to remove
-  - Export bookmarks as JSON
+  - Star functions, localStorage, export JSON
 
-── INTERNAL ──────────────────────────────────────────
-
-- anaSetActive() now covers all 7 analysis buttons (was missing cycle/stack/diff)
-- clearCanvas() clears module legend
-- server.py: /api/source endpoint with security validation (path must be under root)
-- Node height constant (NH) updated from 36→46 across all renderers
+[FEAT 7] Test suite — 249 tests / 13 categories
+[FEAT 8] Smoke test — 39 end-to-end tests

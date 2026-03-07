@@ -807,6 +807,9 @@ let acIdx = -1;
 let collapsedNodes = new Set();  // nodes whose subtrees are hidden
 let traceDir = 'both';  // 'both' | 'down' | 'up'
 
+// Safe string for use inside inline onclick='...' attributes
+function esc(s){ return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
 const STYLES = [
   {id:'default',  c:'#4a8fff'}, {id:'heat',   c:'#ef6548'},
   {id:'green',    c:'#22c55e'}, {id:'purple',  c:'#a78bfa'},
@@ -940,7 +943,7 @@ function enterApp(src){
 function saveSession(){
   if(!G) return;
   try{
-    localStorage.setItem('cg_graph', JSON.stringify({src:G.source,graph:G,tracedFn:tracedFn||null,depth:depth||0,mode:mode||'fn',ts:Date.now()}));
+    localStorage.setItem('cg_graph', JSON.stringify({src:G.source,graph:G,tracedFn:tracedFn||null,depth:depth||0,mode:mode||'fn',traceDir:traceDir||'both',ts:Date.now()}));
   }catch(e){ console.warn('Session save failed',e); }
 }
 function loadSession(){
@@ -970,6 +973,7 @@ function restoreSessionYes(){
   enterApp(sess.src||G.source||'project');
   if(sess.mode && sess.mode!==mode) setMode(sess.mode);
   if(sess.depth){ depth=sess.depth; document.getElementById('depth').value=depth; document.getElementById('dv').textContent=depth===0?'∞':depth; }
+  if(sess.traceDir) setTraceDir(sess.traceDir);
   if(sess.tracedFn){ setTimeout(()=>traceFunction(sess.tracedFn),100); }
   toast(`Session restored: ${G.nodes.length} fns`,'ok');
 }
@@ -988,9 +992,11 @@ function newIndex(fresh=false){
   if(fresh) document.getElementById('src').value='';
   G=null; tracedFn=null; focusedFn=null;
   multiTraceMode=false; multiTraceA=null; multiTraceB=null;
+  traceDir='both';
+  document.querySelectorAll('.tdir-pill').forEach(p=>p.classList.toggle('active',p.dataset.dir==='both'));
   traceHistory=[]; traceHistIdx=-1;
   window._deadFns=null; window._impactFns=null; window._heatScores=null; window._foundPaths=null;
-  clearCanvas();
+  clearCanvas(); closeSource(); closeBookmarks();
   document.getElementById('analysis-result').innerHTML='';
   anaSetActive(null);
   document.getElementById('progress').style.display='none';
@@ -1551,7 +1557,7 @@ function renderFnGraph(){
 
     let fill=col.fill, stroke=col.stroke, sw=1.5;
     // Module color as default stroke when available
-    if(fnModCol && meta.type!=='external'){ stroke=fnModCol; fill=fnModCol+'12'; }
+    if(fnModCol && meta.type!=='external'){ stroke=fnModCol; fill=fnModCol+'1a'; }
     if(meta.type==='external'){ fill='#0e1420'; stroke='#2d3d55'; sw=1; }
     if(meta.type==='macro'){ fill='#1a180a'; stroke='#d4a843'; }
     if(role==='caller'){ fill='#2a0d0d'; stroke='#ef6548'; sw=2; }
@@ -3080,6 +3086,7 @@ function updateBookmarkBadge(){
   btn.textContent = _bookmarks.size ? `★ ${_bookmarks.size}` : '★';
 }
 function openBookmarks(){
+  closeSource();
   renderBookmarks();
   document.getElementById('bookmarks-panel').classList.add('open');
 }
@@ -3172,7 +3179,7 @@ async function openSource(filePath){
       }
       // Escape HTML
       const escaped = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      html += `<div class="src-line${cls}" ${fn?`data-fn="${fn.id}" onclick="traceFunction('${fn.id}')" style="cursor:pointer"`:''}>` +
+      html += `<div class="src-line${cls}" ${fn?`data-fn="${esc(fn.id)}" onclick="traceFunction('${esc(fn.id)}')" style="cursor:pointer"`:''}>` +
         `<span class="src-gutter">${lineNum}</span>` +
         `<span class="src-code">${escaped}${badges}</span></div>`;
     });
@@ -3418,6 +3425,7 @@ function filterGlobals(q){
   });
 }
 function openGlobals(){
+  closeSource();
   if(!G||!G.globals){ toast('Index a project first','error'); return; }
   const vars = Object.entries(G.globals);
   if(!vars.length){ toast('No global variables found','error'); return; }
@@ -3531,6 +3539,7 @@ function clearGlobalHighlight(){
 
 // ══ RACE PANEL ════════════════════════════════════════════════
 function openRaces(){
+  closeSource();
   if(!G){ toast('Index a project first','error'); return; }
   const races = G.races||[];
 
@@ -3633,6 +3642,7 @@ function highlightRace(idx){
 
 // ══ RTOS PANEL ════════════════════════════════════════════════
 function openRtos(){
+  closeSource();
   if(!G){ toast('Index a project first','error'); return; }
   const rtos = G.rtos||{tasks:{},objects:{}};
   const tasks = Object.entries(rtos.tasks||{});
@@ -3700,6 +3710,7 @@ function closeRtos(){
 
 // ══ PERIPHERAL PANEL ══════════════════════════════════════════
 function openPeriph(){
+  closeSource();
   if(!G){ toast('Index a project first','error'); return; }
   const periph = G.peripherals||{};
   const entries = Object.entries(periph).sort((a,b)=>{
