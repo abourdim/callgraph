@@ -1099,6 +1099,193 @@ function buildSystemDataFlowDiagram(){
   return wrapSvg(svg, W);
 }
 
+// ── Diagram: Boot Call Tree ──────────────────────────────
+function buildBootTreeDiagram(){
+  const tl = A.timeline||[];
+  if(!tl.length) return '';
+  const edges = G.edges||{};
+  const nmap = {};
+  G.nodes.forEach(n=>nmap[n.id]=n);
+
+  // Build tree from entry point using BFS (parent→children)
+  const entry = tl[0]?.functions?.[0]?.fn;
+  if(!entry) return '';
+  const tree = {}; // fn → [children]
+  const parent = {}; // fn → parent
+  const depthMap = {}; // fn → depth
+  const q = [[entry, 0]];
+  const vis = new Set([entry]);
+  depthMap[entry] = 0;
+  tree[entry] = [];
+  const MAX_NODES = 80;
+  let nodeCount = 1;
+
+  while(q.length && nodeCount < MAX_NODES){
+    const [fn, d] = q.shift();
+    if(d >= 6) continue; // max 6 levels
+    const children = (edges[fn]||[]).filter(c=>{
+      const cn = nmap[c];
+      return cn && cn.type==='project' && !vis.has(c);
+    });
+    tree[fn] = children.slice(0, 8); // max 8 children per node
+    for(const c of tree[fn]){
+      vis.add(c);
+      parent[c] = fn;
+      depthMap[c] = d+1;
+      tree[c] = [];
+      nodeCount++;
+      q.push([c, d+1]);
+    }
+  }
+
+  // Layout: indented tree (like file explorer)
+  const NW = 130, NH = 22, INDENT = 30, VGAP = 4, PAD = 15;
+  const flatList = []; // [{fn, depth, y}]
+  function flatten(fn, depth){
+    flatList.push({fn, depth});
+    (tree[fn]||[]).forEach(c=>flatten(c, depth+1));
+  }
+  flatten(entry, 0);
+
+  const W = PAD*2 + 6*INDENT + NW + 40;
+  const H = PAD*2 + flatList.length*(NH+VGAP);
+  const svg = svgEl('svg', {width:W, height:H, style:'display:block;max-width:100%'});
+
+  const positions = {};
+  flatList.forEach((item, i)=>{
+    const x = PAD + item.depth * INDENT;
+    const y = PAD + i * (NH+VGAP);
+    const nd = nmap[item.fn]||{};
+    const mod = nd.mod || nd.module || '';
+    const col = mod && mod!=='external' && mod!=='.' ? modColor(mod) : '#666';
+
+    positions[item.fn] = {x, y, cx:x+NW/2, cy:y+NH/2};
+
+    // Connector line from parent
+    if(parent[item.fn] && positions[parent[item.fn]]){
+      const pp = positions[parent[item.fn]];
+      // Vertical line down then horizontal
+      const midX = x - INDENT/2;
+      svg.appendChild(svgEl('path', {
+        d:`M${pp.x+8},${pp.y+NH} L${pp.x+8},${y+NH/2} L${x},${y+NH/2}`,
+        fill:'none', stroke:'var(--border2)', 'stroke-width':'1'
+      }));
+    }
+
+    // Node box
+    svg.appendChild(svgRect(x, y, NW, NH, {stroke:col, 'stroke-width': item.depth===0?'2':'1.2', rx:4, fill:col+'0d'}));
+
+    // Function name
+    const label = item.fn.length>16 ? item.fn.slice(0,14)+'…' : item.fn;
+    svg.appendChild(svgText(x+NW/2, y+NH/2, label, {'font-size':'8', fill:col, 'font-weight': item.depth===0?'600':'400'}));
+
+    // Module tag on right
+    if(mod && mod!=='external'){
+      svg.appendChild(svgText(x+NW+5, y+NH/2, mod.length>10?mod.slice(0,8)+'…':mod, {'font-size':'6.5', fill:'var(--text3)', 'text-anchor':'start'}));
+    }
+  });
+
+  return wrapSvg(svg, W);
+}
+
+// ── Diagram: Reading Order DAG ──────────────────────────
+function buildReadingOrderDAG(){
+  const order = A.reading_order||[];
+  if(order.length < 2) return '';
+
+  const mods = order.map(o=>o.module);
+  // Build dependency edges
+  const dagEdges = [];
+  order.forEach(o=>{
+    (o.depends_on||[]).forEach(dep=>{
+      if(mods.includes(dep)) dagEdges.push({from:o.module, to:dep});
+    });
+  });
+
+  // Layer by reading order position (reversed: first read = bottom)
+  const NW = 140, NH = 40, HGAP = 50, VGAP = 60, PAD = 30;
+
+  // Assign layers: modules with no deps = layer 0, others by longest path
+  const layerMap = {};
+  const depMap = {};
+  order.forEach(o=>depMap[o.module]=new Set(o.depends_on||[]));
+
+  function getLayer(mod, visited){
+    if(layerMap[mod]!==undefined) return layerMap[mod];
+    if(visited.has(mod)) return 0; // cycle
+    visited.add(mod);
+    const deps = [...(depMap[mod]||[])].filter(d=>mods.includes(d));
+    if(!deps.length){ layerMap[mod]=0; return 0; }
+    const maxDep = Math.max(...deps.map(d=>getLayer(d, visited)));
+    layerMap[mod] = maxDep + 1;
+    return layerMap[mod];
+  }
+  mods.forEach(m=>getLayer(m, new Set()));
+
+  // Group by layer
+  const byLayer = {};
+  for(const [m,l] of Object.entries(layerMap)){
+    if(!byLayer[l]) byLayer[l]=[];
+    byLayer[l].push(m);
+  }
+  const layers = Object.keys(byLayer).map(Number).sort();
+
+  // Layout bottom-up (layer 0 at bottom = foundation)
+  const maxPerLayer = Math.max(...layers.map(l=>byLayer[l].length));
+  const W = Math.max(maxPerLayer*(NW+HGAP)+PAD*2, 450);
+  const H = layers.length*(NH+VGAP)+PAD*2+20;
+  const svg = svgEl('svg', {width:W, height:H, style:'display:block;max-width:100%'});
+
+  const positions = {};
+  layers.forEach((l, li)=>{
+    const row = byLayer[l];
+    const rowW = row.length*(NW+HGAP)-HGAP;
+    const xOff = (W-rowW)/2;
+    // Reverse: layer 0 at bottom
+    const y = H - PAD - (li+1)*(NH+VGAP) + VGAP;
+
+    // Reading order number
+    svg.appendChild(svgText(12, y+NH/2, `${li===0?'Read first':'Read '+(li+1)}`, {'font-size':'7','fill':'var(--text3)','text-anchor':'start','font-style':'italic'}));
+
+    row.forEach((mod, mi)=>{
+      const x = xOff + mi*(NW+HGAP);
+      positions[mod] = {x:x+NW/2, y:y+NH/2, top:y, bot:y+NH, left:x, right:x+NW};
+      const col = modColor(mod);
+      const o = order.find(r=>r.module===mod)||{};
+
+      svg.appendChild(svgEl('rect',{x:x+2,y:y+2,width:NW,height:NH,rx:8,fill:'#00000012',stroke:'none'}));
+      svg.appendChild(svgRect(x, y, NW, NH, {fill:'var(--bg2)', stroke:col, 'stroke-width':'2', rx:8}));
+      svg.appendChild(svgText(x+NW/2, y+NH/2-5, mod.length>14?mod.slice(0,12)+'…':mod, {'font-size':'10','font-weight':'600',fill:col}));
+      svg.appendChild(svgText(x+NW/2, y+NH/2+9, `${o.fn_count||0} fns · ${(o.files||[]).length} files`, {'font-size':'7.5',fill:'var(--text3)'}));
+    });
+  });
+
+  // Edges (dependency arrows: from → to means "from depends on to")
+  dagEdges.forEach((e,ei)=>{
+    const pf = positions[e.from], pt = positions[e.to];
+    if(!pf || !pt) return;
+    const col = modColor(e.from);
+    const offset = (ei % 3 - 1) * 6;
+
+    if(Math.abs(pf.y - pt.y) < 10){
+      // Same row
+      const mx = (pf.x+pt.x)/2;
+      const arcY = Math.min(pf.top, pt.top) - 25;
+      svg.appendChild(svgEl('path',{d:`M${pf.x},${pf.top} Q${mx},${arcY} ${pt.x},${pt.top}`,fill:'none',stroke:col,'stroke-width':'1.2','stroke-opacity':'0.5'}));
+    } else {
+      // Different rows: arrow from dependent (top) down to dependency (bottom)
+      svg.appendChild(svgEl('path',{
+        d:`M${pf.x+offset},${pf.bot} C${pf.x+offset},${pf.bot+VGAP*0.4} ${pt.x+offset},${pt.top-VGAP*0.4} ${pt.x+offset},${pt.top}`,
+        fill:'none',stroke:col,'stroke-width':'1.3','stroke-opacity':'0.6'
+      }));
+      // Arrowhead
+      svg.appendChild(svgEl('polygon',{points:`${pt.x+offset},${pt.top} ${pt.x+offset-4},${pt.top-7} ${pt.x+offset+4},${pt.top-7}`,fill:col,'fill-opacity':'0.6'}));
+    }
+  });
+
+  return wrapSvg(svg, W);
+}
+
 // ── Diagram: Interaction between two modules ────────────
 function buildInteractionMiniDiagram(inter){
   const NW=100, NH=22, HGAP=80, VGAP=6, PAD=15;
@@ -1375,17 +1562,28 @@ addSection('dead_code', '☠ Dead Code Investigation', ()=>{
 addSection('reading', '📖 Reading Order', ()=>{
   const order = A.reading_order || [];
   if(!order.length) return '<div style="color:var(--text3)">No module dependencies found.</div>';
-  return '<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">Recommended sequence for understanding the codebase — read from bottom (drivers) to top (application logic).</div>'
-    + order.map((r,i)=> `
-      <div class="read-step">
-        <div class="read-num">${i+1}</div>
-        <div class="read-detail">
-          <div class="read-mod">${esc(r.module)}</div>
-          <div class="read-files">${r.files.map(f=>esc(f)).join(', ')}</div>
-          <div class="read-reason">${esc(r.reason)}</div>
-        </div>
+  let html = '<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">Recommended sequence for understanding the codebase — start at the foundation (bottom) and work up to application logic (top).</div>';
+
+  // DAG diagram
+  html += buildReadingOrderDAG();
+
+  // Numbered steps with detail
+  html += '<div style="margin-top:1rem">';
+  order.forEach((r,i)=> {
+    const col = modColor(r.module);
+    html += `<div class="read-step">
+      <div class="read-num" style="background:${col}22;color:${col};border-color:${col}44">${i+1}</div>
+      <div class="read-detail">
+        <div class="read-mod" style="color:${col}">${esc(r.module)}</div>
+        <div style="font-size:.7rem;color:var(--text2)">${r.fn_count||0} functions · ${(r.files||[]).length} files</div>
+        <div class="read-files">${(r.files||[]).map(f=>esc(f)).join(', ')}</div>
+        ${(r.depends_on||[]).length ? `<div style="font-size:.68rem;color:var(--text3);margin-top:.15rem">Depends on: ${r.depends_on.map(d=>'<span style="color:'+modColor(d)+'">'+esc(d)+'</span>').join(', ')}</div>` : ''}
+        ${(r.used_by||[]).length ? `<div style="font-size:.68rem;color:var(--text3)">Used by: ${r.used_by.map(d=>'<span style="color:'+modColor(d)+'">'+esc(d)+'</span>').join(', ')}</div>` : ''}
       </div>
-    `).join('');
+    </div>`;
+  });
+  html += '</div>';
+  return html;
 });
 
 // ── 3. Inferred Requirements ────────────────────────────
@@ -1471,17 +1669,26 @@ addSection('dataflow', '🔄 System Data Flow', ()=>{
 addSection('boot', '🚀 Boot Sequence', ()=>{
   const tl = A.timeline||[];
   if(!tl.length) return '<div style="color:var(--text3)">No entry point found.</div>';
-  let html = '<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">Initialization call sequence from entry point.</div>';
+  let html = '<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">Initialization call tree from entry point. Each level = one call depth.</div>';
+
+  // Boot call tree diagram
+  html += buildBootTreeDiagram();
+
+  // Flat timeline below (collapsible)
+  html += `<div class="card" style="margin-top:.8rem"><div class="card-hdr" onclick="this.parentElement.classList.toggle('open')">
+    <span class="card-arrow">▶</span><span class="card-title">Flat timeline (${tl.length} steps, ${tl.reduce((s,t)=>s+t.fn_count,0)} functions)</span></div>
+    <div class="card-body">`;
   tl.forEach((step, i)=>{
     const isLast = i===tl.length-1;
     html += `<div class="tl-step">
       <div class="tl-marker"><div class="tl-dot"></div>${isLast?'':'<div class="tl-line"></div>'}</div>
       <div class="tl-content">
-        <div class="tl-label">${esc(step.label)}</div>
+        <div class="tl-label">${esc(step.label)} <span style="font-size:.6rem;color:var(--text3)">(${step.fn_count} functions)</span></div>
         <div class="tl-fns">${step.functions.map(f=>`<span class="tbl-fn">${esc(f.fn)}</span> <span style="font-size:.6rem;color:var(--text3)">${esc(f.mod)}</span>`).join(' · ')}</div>
       </div>
     </div>`;
   });
+  html += '</div></div>';
   return html;
 });
 

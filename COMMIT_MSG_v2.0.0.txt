@@ -1,0 +1,22 @@
+feat: Callgraph Studio v2.0.0
+
+Boot sequence: interactive call tree SVG (indented tree layout,
+color-coded by module, connector lines, max 80 nodes / 6 depth)
++ flat timeline collapsed below
+
+Reading order: module dependency DAG diagram (bottom-up layout,
+foundation at bottom, application at top, dependency arrows with
+arrowheads, reading order labels, shadow nodes)
+
+Layer diagram: multi-row (max 4/row), S-curve edges, call count
+labels, layer names
+
+Module narratives: subgraph + dependency fan-in/fan-out diagram
+
+Data flow: system-wide ISR→state→task→peripheral diagram
+
+Interactions: per-pair mini diagrams with directional arrows
+
+start.sh: auto-kill stale server, auto-port, auto-open browser
+
+Tests: 794 · Lines: 13,000+
