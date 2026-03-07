@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Callgraph Studio v1.7.0 — Smoke Test
+Callgraph Studio v1.8.0 — Smoke Test
 
 Real end-to-end: starts the server, creates a mock C project,
 indexes it via HTTP, validates the full graph, tests source API,
@@ -47,7 +47,7 @@ def http_post(path, data, timeout=10):
     return urllib.request.urlopen(req, timeout=timeout)
 
 # ══════════════════════════════════════════════════════════════
-print(f"\n{B}══ Callgraph Studio v1.7.0 — Smoke Test ══{N}\n")
+print(f"\n{B}══ Callgraph Studio v1.8.0 — Smoke Test ══{N}\n")
 
 # ── 1. Create mock C project ─────────────────────────────────
 print(f"{B}1. Create mock project{N}")
@@ -147,8 +147,8 @@ print(f"\n{B}3. Basic endpoints{N}")
 
 try:
     body = http_get("/").read().decode()
-    assert "Callgraph Studio" in body and "v1.7.0" in body
-    ok("GET / → Callgraph Studio v1.7.0")
+    assert "Callgraph Studio" in body and "v1.8.0" in body
+    ok("GET / → Callgraph Studio v1.8.0")
 except Exception as e:
     fail(f"GET /: {e}")
 

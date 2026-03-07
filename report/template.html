@@ -916,6 +916,187 @@ function buildModuleSubgraph(mod){
   return wrapSvg(svg, W);
 }
 
+// ── Diagram: Module Dependencies ─────────────────────────
+function buildModuleDependencyDiagram(mod){
+  const me = G.mod_edges||{};
+  const mods = (G.mods||[]).filter(m=>m!=='external'&&m!=='.');
+  // Find deps and reverse deps
+  const depsOut = []; const depsIn = [];
+  for(const key of Object.keys(me)){
+    const [fr,to] = key.split('→');
+    if(fr===mod && to!==mod) depsOut.push({mod:to, count:me[key]});
+    if(to===mod && fr!==mod) depsIn.push({mod:fr, count:me[key]});
+  }
+  if(!depsOut.length && !depsIn.length) return '<div style="font-size:.68rem;color:var(--text3);margin:.3rem 0">No external dependencies.</div>';
+
+  const NW=110, NH=28, HGAP=60, VGAP=10, PAD=20;
+  const maxCol = Math.max(depsIn.length, depsOut.length, 1);
+  const W = 3*(NW+HGAP)+PAD*2;
+  const H = maxCol*(NH+VGAP)+PAD*2+20;
+  const svg = svgEl('svg', {width:W, height:H, style:'display:block;max-width:100%'});
+
+  // Column headers
+  ['Used by','Module','Depends on'].forEach((label,i)=>{
+    svg.appendChild(svgText(PAD+i*(NW+HGAP)+NW/2, 12, label, {'font-size':'8','fill':'var(--text3)','font-weight':'500'}));
+  });
+
+  const pos = {};
+  // Center: the module itself
+  const cy = PAD+20+(maxCol*(NH+VGAP)-NH)/2;
+  const col = modColor(mod);
+  svg.appendChild(svgRect(PAD+(NW+HGAP), cy, NW, NH, {stroke:col,'stroke-width':'2.5',fill:col+'1a'}));
+  svg.appendChild(svgText(PAD+(NW+HGAP)+NW/2, cy+NH/2, mod.length>12?mod.slice(0,10)+'…':mod, {'font-size':'10','fill':col,'font-weight':'600'}));
+  pos[mod] = {x:PAD+(NW+HGAP)+NW/2, y:cy+NH/2, left:PAD+(NW+HGAP), right:PAD+(NW+HGAP)+NW};
+
+  // Left column: modules that call into this one
+  depsIn.sort((a,b)=>b.count-a.count);
+  depsIn.forEach((d,i)=>{
+    const y = PAD+20+i*(NH+VGAP);
+    const dc = modColor(d.mod);
+    svg.appendChild(svgRect(PAD, y, NW, NH, {stroke:dc,'stroke-width':'1.5'}));
+    svg.appendChild(svgText(PAD+NW/2, y+NH/2-3, d.mod.length>12?d.mod.slice(0,10)+'…':d.mod, {'font-size':'9','fill':dc}));
+    svg.appendChild(svgText(PAD+NW/2, y+NH/2+9, d.count+' calls', {'font-size':'7','fill':'var(--text3)'}));
+    svg.appendChild(svgCurve(PAD+NW, y+NH/2, pos[mod].left, pos[mod].y, dc+'80'));
+  });
+
+  // Right column: modules this one depends on
+  depsOut.sort((a,b)=>b.count-a.count);
+  depsOut.forEach((d,i)=>{
+    const x = PAD+2*(NW+HGAP);
+    const y = PAD+20+i*(NH+VGAP);
+    const dc = modColor(d.mod);
+    svg.appendChild(svgRect(x, y, NW, NH, {stroke:dc,'stroke-width':'1.5'}));
+    svg.appendChild(svgText(x+NW/2, y+NH/2-3, d.mod.length>12?d.mod.slice(0,10)+'…':d.mod, {'font-size':'9','fill':dc}));
+    svg.appendChild(svgText(x+NW/2, y+NH/2+9, d.count+' calls', {'font-size':'7','fill':'var(--text3)'}));
+    svg.appendChild(svgCurve(pos[mod].right, pos[mod].y, x, y+NH/2, col+'80'));
+  });
+
+  return `<div style="margin:.3rem 0"><span style="font-size:.7rem;color:var(--text3)">Module dependencies:</span></div>` + wrapSvg(svg, W);
+}
+
+// ── Diagram: System-wide Data Flow ──────────────────────
+function buildSystemDataFlowDiagram(){
+  const flows = A.data_flows||[];
+  if(!flows.length) return '';
+  const isrs = flows.filter(f=>f.type==='isr');
+  const tasks = flows.filter(f=>f.type==='task');
+  const raceVars = flows.filter(f=>f.type==='race');
+  const objects = Object.entries((G.rtos||{}).objects||{});
+  const periphs = Object.keys(G.peripherals||{});
+
+  // Columns: ISRs | Shared Vars/Objects | Tasks | Peripherals
+  const colItems = [
+    {label:'ISRs',items:isrs.map(f=>f.fn),color:'#a78bfa'},
+    {label:'Shared State',items:[...raceVars.map(f=>f.fn),...objects.map(([n])=>n)].slice(0,12),color:'#ef6548'},
+    {label:'Tasks',items:tasks.map(f=>f.fn),color:'#60a5fa'},
+    {label:'Peripherals',items:periphs.slice(0,10),color:'#fbbf24'},
+  ].filter(c=>c.items.length);
+
+  if(!colItems.length) return '';
+  const NW=120, NH=26, VGAP=8, COL_W=160, PAD=25;
+  const maxRows = Math.max(...colItems.map(c=>c.items.length),1);
+  const W = colItems.length*COL_W+PAD*2;
+  const H = maxRows*(NH+VGAP)+PAD*2+20;
+  const svg = svgEl('svg',{width:W,height:H,style:'display:block;max-width:100%'});
+
+  const pos = {};
+  colItems.forEach((col,ci)=>{
+    const x = PAD+ci*COL_W;
+    svg.appendChild(svgText(x+NW/2, 14, col.label, {'font-size':'9','fill':col.color,'font-weight':'500'}));
+    col.items.forEach((item,ri)=>{
+      const y = PAD+20+ri*(NH+VGAP);
+      svg.appendChild(svgRect(x, y, NW, NH, {stroke:col.color,'stroke-width':'1.5'}));
+      const label = item.length>14?item.slice(0,12)+'…':item;
+      svg.appendChild(svgText(x+NW/2, y+NH/2, label, {'font-size':'8','fill':col.color}));
+      pos[item] = {x:x+NW/2, y:y+NH/2, right:x+NW, left:x};
+    });
+  });
+
+  // Connect ISRs → shared vars (writes)
+  isrs.forEach(isr=>{
+    const irn = G.nodes.find(n=>n.id===isr.fn);
+    if(!irn) return;
+    (irn.writes||[]).forEach(v=>{
+      if(pos[isr.fn] && pos[v]){
+        svg.appendChild(svgCurve(pos[isr.fn].right, pos[isr.fn].y, pos[v].left, pos[v].y, '#a78bfa60'));
+      }
+    });
+  });
+
+  // Connect shared vars → tasks (reads)
+  tasks.forEach(t=>{
+    const tn = G.nodes.find(n=>n.id===t.fn);
+    if(!tn) return;
+    (tn.reads||[]).forEach(v=>{
+      if(pos[v] && pos[t.fn]){
+        svg.appendChild(svgCurve(pos[v].right, pos[v].y, pos[t.fn].left, pos[t.fn].y, '#ef654860'));
+      }
+    });
+  });
+
+  // Connect tasks → peripherals
+  tasks.forEach(t=>{
+    const tn = G.nodes.find(n=>n.id===t.fn);
+    if(!tn) return;
+    const bases = [...new Set((tn.peripherals||[]).map(p=>p.split('->')[0]))];
+    bases.forEach(b=>{
+      if(pos[t.fn] && pos[b]){
+        svg.appendChild(svgCurve(pos[t.fn].right, pos[t.fn].y, pos[b].left, pos[b].y, '#fbbf2460'));
+      }
+    });
+  });
+
+  return wrapSvg(svg, W);
+}
+
+// ── Diagram: Interaction between two modules ────────────
+function buildInteractionMiniDiagram(inter){
+  const NW=100, NH=22, HGAP=80, VGAP=6, PAD=15;
+  // Show top calls as boxes on each side with arrows between
+  const left = inter.calls_12.slice(0,6).map(c=>{const p=c.split('→'); return {from:p[0],to:p[1]};});
+  const right = inter.calls_21.slice(0,6).map(c=>{const p=c.split('→'); return {from:p[0],to:p[1]};});
+  const shared = inter.shared_globals.slice(0,4);
+  const maxRows = Math.max(left.length, right.length, shared.length, 1);
+  if(maxRows===0) return '';
+
+  const W = 2*(NW+10)+HGAP+PAD*2 + (shared.length?NW+HGAP:0);
+  const H = maxRows*(NH+VGAP)+PAD*2+20;
+  const svg = svgEl('svg',{width:W,height:H,style:'display:block;max-width:100%'});
+
+  const c1 = modColor(inter.mod1), c2 = modColor(inter.mod2);
+
+  // Headers
+  svg.appendChild(svgText(PAD+NW/2, 12, inter.mod1, {'font-size':'9','fill':c1,'font-weight':'500'}));
+  svg.appendChild(svgText(PAD+NW+10+HGAP+NW/2, 12, inter.mod2, {'font-size':'9','fill':c2,'font-weight':'500'}));
+
+  // Left→Right calls
+  left.forEach((call,i)=>{
+    const y = PAD+20+i*(NH+VGAP);
+    const x1 = PAD, x2 = PAD+NW+10+HGAP;
+    svg.appendChild(svgRect(x1,y,NW,NH,{stroke:c1,'stroke-width':'1'}));
+    svg.appendChild(svgText(x1+NW/2,y+NH/2,call.from.length>12?call.from.slice(0,10)+'…':call.from,{'font-size':'7','fill':c1}));
+    svg.appendChild(svgRect(x2,y,NW,NH,{stroke:c2,'stroke-width':'1'}));
+    svg.appendChild(svgText(x2+NW/2,y+NH/2,call.to.length>12?call.to.slice(0,10)+'…':call.to,{'font-size':'7','fill':c2}));
+    // Arrow
+    svg.appendChild(svgEl('line',{x1:x1+NW,y1:y+NH/2,x2:x2,y2:y+NH/2,stroke:c1+'80','stroke-width':'1','marker-end':''}));
+    svg.appendChild(svgEl('polygon',{points:`${x2},${y+NH/2} ${x2-6},${y+NH/2-3} ${x2-6},${y+NH/2+3}`,fill:c1+'80'}));
+  });
+
+  // Right→Left calls (below)
+  right.forEach((call,i)=>{
+    const y = PAD+20+(left.length+i)*(NH+VGAP);
+    const x1 = PAD, x2 = PAD+NW+10+HGAP;
+    svg.appendChild(svgRect(x1,y,NW,NH,{stroke:c1,'stroke-width':'1'}));
+    svg.appendChild(svgText(x1+NW/2,y+NH/2,call.to.length>12?call.to.slice(0,10)+'…':call.to,{'font-size':'7','fill':c1}));
+    svg.appendChild(svgRect(x2,y,NW,NH,{stroke:c2,'stroke-width':'1'}));
+    svg.appendChild(svgText(x2+NW/2,y+NH/2,call.from.length>12?call.from.slice(0,10)+'…':call.from,{'font-size':'7','fill':c2}));
+    svg.appendChild(svgEl('line',{x1:x2,y1:y+NH/2,x2:x1+NW,y2:y+NH/2,stroke:c2+'80','stroke-width':'1'}));
+    svg.appendChild(svgEl('polygon',{points:`${x1+NW},${y+NH/2} ${x1+NW+6},${y+NH/2-3} ${x1+NW+6},${y+NH/2+3}`,fill:c2+'80'}));
+  });
+
+  return `<div style="margin-top:.5rem">${wrapSvg(svg, W)}</div>`;
+}
+
 // ══ SECTION BUILDERS ════════════════════════════════════
 
 const sections = [];
@@ -927,6 +1108,10 @@ function addSection(id, title, buildFn){
 // ── 1. Header & Health ──────────────────────────────────
 addSection('header', '◈ Overview', ()=>{
   const risk = A.risk_scores.overall || {score:0, grade:'?'};
+  const reqCount = (A.requirements||[]).length;
+  const qCount = (A.questions||[]).length;
+  const isrCount = G.nodes.filter(n=>n.is_isr).length;
+  const deadCount = (A.dead_code||[]).length;
   return `
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-val">${M.fn_count}</div><div class="stat-label">Functions</div></div>
@@ -935,6 +1120,10 @@ addSection('header', '◈ Overview', ()=>{
       <div class="stat-card"><div class="stat-val">${M.file_count}</div><div class="stat-label">Source Files</div></div>
       <div class="stat-card"><div class="stat-val">${M.race_count}</div><div class="stat-label">Race Candidates</div></div>
       <div class="stat-card"><div class="stat-val">${Object.keys(G.peripherals||{}).length}</div><div class="stat-label">Peripherals</div></div>
+      <div class="stat-card"><div class="stat-val">${isrCount}</div><div class="stat-label">ISRs</div></div>
+      <div class="stat-card"><div class="stat-val">${reqCount}</div><div class="stat-label">Requirements</div></div>
+      <div class="stat-card"><div class="stat-val">${qCount}</div><div class="stat-label">Questions</div></div>
+      <div class="stat-card"><div class="stat-val">${deadCount}</div><div class="stat-label">Dead Code</div></div>
     </div>
     <div class="health-row">
       <div class="health-gauge ${gradeClass(risk.grade)}">${risk.grade}</div>
@@ -946,6 +1135,190 @@ addSection('header', '◈ Overview', ()=>{
       </div>
     </div>
   `;
+});
+
+// ── 1b. Architecture Narrative ────────────────────────────
+addSection('narrative', '📖 Architecture Narrative', ()=>{
+  const narrative = A.narrative || [];
+  if(!narrative.length) return '<div style="color:var(--text3)">No narrative generated.</div>';
+  let html = '';
+  narrative.forEach(s => {
+    html += `<div style="margin-bottom:1.5rem">
+      <div style="font-weight:600;font-size:.88rem;margin-bottom:.3rem;color:var(--accent)">${esc(s.title)}</div>
+      <div style="font-size:.8rem;color:var(--text);line-height:1.7">${esc(s.text).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')}</div>`;
+
+    // If this is a module narrative, add its subgraph + dependency diagram
+    if(s.mod && G.mods && G.mods.includes(s.mod)){
+      // Module subgraph (internal call flow)
+      html += `<div style="margin-top:.5rem"><span style="font-size:.7rem;color:var(--text3)">Internal call graph:</span></div>`;
+      html += buildModuleSubgraph(s.mod);
+
+      // Module dependency mini-diagram
+      html += buildModuleDependencyDiagram(s.mod);
+    }
+    html += '</div>';
+  });
+  return html;
+});
+
+// ── 1c. Data Flow Narratives ──────────────────────────────
+addSection('dataflows_detail', '🔀 Data Flow Details', ()=>{
+  const flows = A.data_flows || [];
+  if(!flows.length) return '<div style="color:var(--text3)">No data flows detected.</div>';
+  let html = '<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">How data moves through the system: ISR→global→task→peripheral pipelines.</div>';
+
+  // System-wide data flow diagram
+  html += buildSystemDataFlowDiagram();
+  const byType = {};
+  flows.forEach(f=>{ if(!byType[f.type]) byType[f.type]=[]; byType[f.type].push(f); });
+  for(const [type, items] of Object.entries(byType)){
+    const icon = type==='isr'?'⚡':type==='task'?'🔄':type==='race'?'⚠':'📊';
+    html += `<div style="font-weight:500;margin:.8rem 0 .3rem">${icon} ${type.toUpperCase()} Flows (${items.length})</div>`;
+    items.forEach(f=>{
+      const sevCol = f.severity==='high'?'var(--red)':f.severity==='medium'?'var(--amber)':'var(--green)';
+      html += `<div style="border-left:3px solid ${sevCol};padding:.5rem .8rem;margin:.4rem 0;background:var(--bg3);border-radius:0 6px 6px 0;font-size:.78rem;line-height:1.6">
+        ${esc(f.text).replace(/\*\*([^*]+)\*\*/g,'<b style="color:var(--accent)">$1</b>')}
+      </div>`;
+    });
+  }
+  return html;
+});
+
+// ── 1d. Block Interactions ────────────────────────────────
+addSection('interactions', '🔗 Module Interactions', ()=>{
+  const inters = A.interactions || [];
+  if(!inters.length) return '<div style="color:var(--text3)">No cross-module interactions.</div>';
+  let html = '<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">Every module pair that communicates: how and what they share.</div>';
+  html += `<table class="tbl"><thead><tr><th>Module A</th><th>Module B</th><th>A→B</th><th>B→A</th><th>Shared Globals</th><th>Shared HW</th></tr></thead><tbody>`;
+  inters.forEach(inter=>{
+    html += `<tr><td>${esc(inter.mod1)}</td><td>${esc(inter.mod2)}</td>
+      <td>${inter.calls_12.length}</td><td>${inter.calls_21.length}</td>
+      <td style="font-size:.68rem">${inter.shared_globals.slice(0,5).map(g=>esc(g)).join(', ')||'—'}</td>
+      <td style="font-size:.68rem">${inter.shared_peripherals.join(', ')||'—'}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  // Expand detail for top 5
+  inters.slice(0,5).forEach(inter=>{
+    if(!inter.calls_12.length && !inter.calls_21.length) return;
+    html += `<div class="card"><div class="card-hdr" onclick="this.parentElement.classList.toggle('open')">
+      <span class="card-arrow">▶</span><span class="card-title">${esc(inter.mod1)} ↔ ${esc(inter.mod2)} (${inter.total_edges} calls)</span></div>
+      <div class="card-body" style="font-size:.72rem">`;
+    if(inter.calls_12.length) html += `<div><b>${esc(inter.mod1)} → ${esc(inter.mod2)}:</b> ${inter.calls_12.slice(0,15).map(c=>esc(c)).join('; ')}</div>`;
+    if(inter.calls_21.length) html += `<div style="margin-top:.3rem"><b>${esc(inter.mod2)} → ${esc(inter.mod1)}:</b> ${inter.calls_21.slice(0,15).map(c=>esc(c)).join('; ')}</div>`;
+    if(inter.shared_globals.length) html += `<div style="margin-top:.3rem"><b>Shared globals:</b> ${inter.shared_globals.map(g=>esc(g)).join(', ')}</div>`;
+    // Mini interaction diagram
+    html += buildInteractionMiniDiagram(inter);
+    html += '</div></div>';
+  });
+  return html;
+});
+
+// ── 1e. Peripheral Register Map ───────────────────────────
+addSection('periph_map', '🔌 Peripheral Register Map', ()=>{
+  const pmap = A.peripheral_map || {};
+  const bases = Object.keys(pmap);
+  if(!bases.length) return '<div style="color:var(--text3)">No peripheral access detected.</div>';
+  let html = '<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">Every peripheral register accessed, every function that touches it, ISR vs task context.</div>';
+  bases.sort().forEach(base=>{
+    const data = pmap[base];
+    html += `<div class="card"><div class="card-hdr" onclick="this.parentElement.classList.toggle('open')">
+      <span class="card-arrow">▶</span><span class="card-title" style="color:var(--amber)">${esc(base)}</span>
+      <span style="font-size:.62rem;color:var(--text3)">${data.n_registers} registers · ${data.total_accessors.length} functions</span></div>
+      <div class="card-body">`;
+    html += `<table class="tbl"><thead><tr><th>Register</th><th>Readers</th><th>Writers</th><th>ISR Access</th><th>Conflict</th></tr></thead><tbody>`;
+    for(const [reg, rdata] of Object.entries(data.registers)){
+      const conflictBadge = rdata.conflict ? tag('⚠ CONFLICT','high') : tag('OK','low');
+      html += `<tr><td class="tbl-fn">${esc(base)}→${esc(reg)}</td>
+        <td style="font-size:.68rem">${rdata.readers.map(r=>esc(r)).join(', ')||'—'}</td>
+        <td style="font-size:.68rem">${rdata.writers.map(w=>esc(w)).join(', ')||'—'}</td>
+        <td style="font-size:.68rem">${[...rdata.isr_readers,...rdata.isr_writers].map(f=>esc(f)).join(', ')||'—'}</td>
+        <td>${conflictBadge}</td></tr>`;
+    }
+    html += '</tbody></table></div></div>';
+  });
+  return html;
+});
+
+// ── 1f. Deep Function Analysis ────────────────────────────
+addSection('functions_deep', '🔬 Function Deep Analysis', ()=>{
+  const fns = A.functions_deep || [];
+  if(!fns.length) return '<div style="color:var(--text3)">No functions analyzed.</div>';
+  let html = `<div style="color:var(--text2);font-size:.78rem;margin-bottom:.4rem">${fns.length} functions analyzed. Sorted by risk (highest first).</div>`;
+  html += '<input class="search-box" placeholder="Search functions…" oninput="filterTable(this,\'fn-deep-tbl\')">';
+  html += `<table class="tbl" id="fn-deep-tbl"><thead><tr><th>Function</th><th>Module</th><th>Risk</th><th>Complexity</th><th>Impact</th><th>Purpose</th></tr></thead><tbody>`;
+  fns.forEach(f=>{
+    const rc = f.risk_level==='critical'?'var(--red)':f.risk_level==='high'?'var(--amber)':f.risk_level==='medium'?'var(--text2)':'var(--green)';
+    html += `<tr><td class="tbl-fn">${esc(f.id)}</td><td style="font-size:.68rem">${esc(f.mod)}</td>
+      <td><span style="color:${rc};font-weight:600">${f.risk_score}</span> <span style="font-size:.58rem">${f.risk_level}</span></td>
+      <td>${f.complexity} <span style="font-size:.58rem">${f.complexity_label}</span></td>
+      <td>${f.impact}</td><td style="font-size:.68rem;color:var(--text3)">${esc(f.purpose)}</td></tr>`;
+  });
+  html += '</tbody></table>';
+
+  // Top 20 risk cards with full detail
+  html += '<div style="margin-top:1rem;font-weight:500">Top Risk Functions (detailed)</div>';
+  fns.slice(0,20).forEach(f=>{
+    html += `<div class="card"><div class="card-hdr" onclick="this.parentElement.classList.toggle('open')">
+      <span class="card-arrow">▶</span><span class="card-title">${esc(f.id)}</span>
+      <span style="font-size:.62rem;color:var(--text3)">${esc(f.mod)} · ${esc(f.file)}:${f.line} · risk:${f.risk_score}</span></div>
+      <div class="card-body" style="font-size:.75rem;line-height:1.6">
+        <div><b>Purpose:</b> ${esc(f.purpose)}</div>
+        <div><b>Risk:</b> ${f.risk_score}/100 (${f.risk_level})</div>`;
+    if(f.risk_factors.length) html += `<div><b>Risk factors:</b><ul style="margin:.2rem 0;padding-left:1.2rem">${f.risk_factors.map(r=>'<li>'+esc(r)+'</li>').join('')}</ul></div>`;
+    html += `<div><b>Complexity:</b> ${f.complexity} (fan-in:${f.fan_in} × fan-out:${f.fan_out})</div>
+        <div><b>Impact radius:</b> ${f.impact} downstream functions</div>`;
+    if(f.callers.length) html += `<div><b>Called by (${f.callers.length}):</b> ${f.callers.slice(0,10).map(c=>esc(c)).join(', ')}</div>`;
+    if(f.callees.length) html += `<div><b>Calls (${f.callees.length}):</b> ${f.callees.slice(0,10).map(c=>esc(c)).join(', ')}</div>`;
+    if(f.reads.length) html += `<div><b>Reads globals:</b> ${f.reads.map(g=>esc(g)).join(', ')}</div>`;
+    if(f.writes.length) html += `<div><b>Writes globals:</b> <span style="color:var(--red)">${f.writes.map(g=>esc(g)).join(', ')}</span></div>`;
+    if(f.peripherals.length) html += `<div><b>Peripherals:</b> <span style="color:var(--amber)">${f.peripherals.map(p=>esc(p)).join(', ')}</span></div>`;
+    if(f.prereqs.length) html += `<div><b>Read before modifying:</b> ${f.prereqs.slice(0,8).map(p=>esc(p)).join(', ')}</div>`;
+    html += '</div></div>';
+  });
+  return html;
+});
+
+// ── 1g. Race Deep Analysis ────────────────────────────────
+addSection('races_deep', '🛡 Race Condition Analysis', ()=>{
+  const races = A.races_deep || [];
+  if(!races.length) return '<div style="color:var(--green);font-weight:500">No race conditions detected. ✓</div>';
+  let html = `<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">${races.length} race conditions found. Each analyzed with all readers/writers, protection status, and fix recommendations.</div>`;
+  races.forEach((r,i)=>{
+    const sevCol = r.severity==='high'?'var(--red)':'var(--amber)';
+    html += `<div class="card open"><div class="card-hdr" onclick="this.parentElement.classList.toggle('open')">
+      <span class="card-arrow">▶</span>
+      <span class="card-title" style="color:${sevCol}">Race #${i+1}: ${esc(r.var)}</span>
+      <span style="font-size:.62rem">${tag(r.severity,r.severity==='high'?'high':'medium')} ${r.protected?tag('protected','low'):tag('UNPROTECTED','high')}</span></div>
+      <div class="card-body" style="font-size:.78rem;line-height:1.7">
+        <div><b>Variable:</b> ${esc(r.var)} ${r.is_volatile?'(volatile)':''} ${r.is_extern?'(extern)':''}</div>
+        <div><b>Declared:</b> ${esc(r.file)}:${r.line}</div>
+        <div><b>ISR writers:</b> <span style="color:var(--purple)">${r.isr_writers.map(w=>esc(w)).join(', ')}</span></div>
+        <div><b>Task accessor:</b> ${esc(r.task_fn)} (${r.task_access})</div>
+        <div><b>All readers (${r.all_readers.length}):</b> ${r.all_readers.map(f=>esc(f)).join(', ')}</div>
+        <div><b>All writers (${r.all_writers.length}):</b> <span style="color:var(--red)">${r.all_writers.map(f=>esc(f)).join(', ')}</span></div>
+        <div style="margin-top:.4rem;padding:.4rem .6rem;background:var(--bg3);border-radius:4px;border-left:3px solid ${sevCol}">
+          <b>Recommendation:</b> ${esc(r.fix_recommendation)}
+        </div>
+      </div></div>`;
+  });
+  return html;
+});
+
+// ── 1h. Dead Code Investigation ───────────────────────────
+addSection('dead_code', '☠ Dead Code Investigation', ()=>{
+  const dead = A.dead_code || [];
+  if(!dead.length) return '<div style="color:var(--green);font-weight:500">No dead code candidates found. ✓</div>';
+  let html = `<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">${dead.length} functions with zero callers — investigated for intent and removal safety.</div>`;
+  html += `<table class="tbl"><thead><tr><th>Function</th><th>Module</th><th>File</th><th>Investigation</th><th>Action</th></tr></thead><tbody>`;
+  dead.forEach(d=>{
+    const actCol = d.recommendation==='likely_remove'?'var(--red)':d.recommendation==='investigate'?'var(--amber)':'var(--text2)';
+    html += `<tr><td class="tbl-fn">${esc(d.fn)}</td><td>${esc(d.mod)}</td>
+      <td style="font-size:.68rem">${esc(d.file)}</td>
+      <td style="font-size:.68rem">${d.hints.map(h=>esc(h)).join('; ')}</td>
+      <td style="color:${actCol};font-weight:500;font-size:.72rem">${d.recommendation.replace('_',' ')}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
 });
 
 // ── 2. Reading Order ────────────────────────────────────
