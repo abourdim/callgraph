@@ -49,7 +49,7 @@ header() {
     clear
     echo -e "${C}"
     echo "  ╔══════════════════════════════════════════╗"
-    echo "  ║       ✦  Callgraph Studio  v1.3          ║"
+    echo "  ║       ✦  Callgraph Studio  v1.6          ║"
     echo "  ║       C · Interactive Call Graph         ║"
     echo "  ╚══════════════════════════════════════════╝"
     echo -e "${N}"

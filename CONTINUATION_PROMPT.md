@@ -6,7 +6,7 @@ Use this prompt to continue development in a new conversation.
 
 ## Context
 
-You are continuing development of **Callgraph Studio v1.3.0**, a single-page embedded C call graph analyser. The app is a self-contained web tool: one `index.html` (4,188 lines), one `server.py` (502 lines), one `analyzer.py` (649 lines), one `start.sh` (322 lines). The user runs `./start.sh` and gets a browser-based interactive call graph.
+You are continuing development of **Callgraph Studio v1.6.0**, a single-page embedded C call graph analyser. The app is a self-contained web tool: one `index.html` (4,188 lines), one `server.py` (502 lines), one `analyzer.py` (649 lines), one `start.sh` (322 lines). The user runs `./start.sh` and gets a browser-based interactive call graph.
 
 ---
 
@@ -40,7 +40,7 @@ You are continuing development of **Callgraph Studio v1.3.0**, a single-page emb
 
 ---
 
-## Next features (see ROADMAP_v1.3.md)
+## Next features (see ROADMAP_v1.6.md)
 
 1. RTOS task→ISR interaction diagram
 2. Inter-module coupling metrics
@@ -55,4 +55,4 @@ You are continuing development of **Callgraph Studio v1.3.0**, a single-page emb
 - Check JS: `sed -n '/<script>/,/<\/script>/p' index.html | sed '1d;$d' > /tmp/extracted.js && node --check /tmp/extracted.js`
 - Check Python: `python3 -c "import py_compile; py_compile.compile('server.py')"`
 - Use `str_replace` for surgical edits — never rewrite the full file
-- Version is `v1.3.0`; next release `v1.4.0`
+- Version is `v1.6.0`; next release `v1.6.0`

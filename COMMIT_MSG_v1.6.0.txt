@@ -1,7 +1,7 @@
-feat: Callgraph Studio v1.3.0
+feat: Callgraph Studio v1.6.0
 
 ═══════════════════════════════════════════════════════
-  Callgraph Studio  v1.3.0
+  Callgraph Studio  v1.6.0
   C · Interactive Call Graph Explorer
   249/249 tests · 39/39 smoke · 6,885 lines total
 ═══════════════════════════════════════════════════════

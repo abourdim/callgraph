@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Callgraph Report</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fafaf8;--bg2:#ffffff;--bg3:#f0efe8;--bg4:#e8e6dc;
+  --text:#1a1a18;--text2:#555550;--text3:#888880;
+  --accent:#2563eb;--accent2:#1d4ed8;
+  --green:#16a34a;--red:#dc2626;--amber:#d97706;--purple:#7c3aed;--cyan:#0891b2;
+  --border:#d8d6cc;--border2:#c8c6bc;
+  --sidebar-w:240px;
+  --font-body:'DM Sans',sans-serif;
+  --font-head:'Source Serif 4',Georgia,serif;
+  --font-mono:'IBM Plex Mono',monospace;
+}
+.dark{
+  --bg:#0c0e14;--bg2:#12151e;--bg3:#181c28;--bg4:#1e2334;
+  --text:#dce0ec;--text2:#8890a8;--text3:#555a6c;
+  --accent:#60a5fa;--accent2:#93bbfd;
+  --green:#4ade80;--red:#f87171;--amber:#fbbf24;--purple:#a78bfa;--cyan:#22d3ee;
+  --border:#2a2f3e;--border2:#353b4e;
+}
+html,body{height:100%;font-family:var(--font-body);font-size:14px;background:var(--bg);color:var(--text);overflow:hidden}
+
+/* ── Layout ──────────────────────────────── */
+.layout{display:flex;height:100%}
+.sidebar{width:var(--sidebar-w);border-right:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-hdr{padding:1.2rem 1rem .8rem;border-bottom:1px solid var(--border)}
+.sidebar-title{font-family:var(--font-head);font-size:1.1rem;font-weight:600;color:var(--text)}
+.sidebar-sub{font-size:.7rem;color:var(--text3);margin-top:.2rem}
+.toc{flex:1;overflow-y:auto;padding:.5rem 0}
+.toc-item{display:block;padding:.35rem 1rem;font-size:.75rem;color:var(--text2);cursor:pointer;text-decoration:none;border-left:3px solid transparent;transition:all .12s}
+.toc-item:hover{background:var(--bg3);color:var(--text)}
+.toc-item.active{border-left-color:var(--accent);color:var(--accent);font-weight:500;background:var(--bg3)}
+.toc-sep{height:1px;background:var(--border);margin:.4rem 1rem}
+.sidebar-foot{padding:.6rem 1rem;border-top:1px solid var(--border);display:flex;gap:.4rem;align-items:center}
+.theme-btn{background:none;border:1px solid var(--border);border-radius:4px;padding:.2rem .5rem;font-size:.65rem;color:var(--text2);cursor:pointer;font-family:var(--font-body)}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Content ─────────────────────────────── */
+.content{flex:1;overflow-y:auto;scroll-behavior:smooth}
+.section{padding:2rem 2.5rem 1.5rem;border-bottom:1px solid var(--border);max-width:960px}
+.section:last-child{border-bottom:none;padding-bottom:4rem}
+.sect-title{font-family:var(--font-head);font-size:1.3rem;font-weight:600;margin-bottom:.2rem;color:var(--text)}
+.sect-sub{font-size:.78rem;color:var(--text3);margin-bottom:1.2rem}
+
+/* ── Stats header ────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.6rem;margin-bottom:1.5rem}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;text-align:center}
+.stat-val{font-family:var(--font-mono);font-size:1.4rem;font-weight:600;color:var(--accent)}
+.stat-label{font-size:.65rem;color:var(--text3);margin-top:.15rem;text-transform:uppercase;letter-spacing:.06em}
+
+/* ── Health gauge ────────────────────────── */
+.health-row{display:flex;align-items:center;gap:1rem;margin-bottom:1rem}
+.health-gauge{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:1.1rem;font-weight:600;border:3px solid}
+.grade-A{border-color:var(--green);color:var(--green);background:color-mix(in srgb,var(--green) 8%,transparent)}
+.grade-B{border-color:var(--cyan);color:var(--cyan);background:color-mix(in srgb,var(--cyan) 8%,transparent)}
+.grade-C{border-color:var(--amber);color:var(--amber);background:color-mix(in srgb,var(--amber) 8%,transparent)}
+.grade-D{border-color:var(--red);color:var(--red);background:color-mix(in srgb,var(--red) 8%,transparent)}
+.grade-F{border-color:var(--red);color:var(--red);background:color-mix(in srgb,var(--red) 12%,transparent)}
+.health-detail{font-size:.8rem;color:var(--text2)}
+
+/* ── Tables ──────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse;font-size:.78rem;margin:.8rem 0}
+.tbl th{text-align:left;padding:.45rem .6rem;border-bottom:2px solid var(--border);font-weight:500;color:var(--text2);font-size:.68rem;text-transform:uppercase;letter-spacing:.04em}
+.tbl td{padding:.4rem .6rem;border-bottom:1px solid var(--border);vertical-align:top}
+.tbl tr:hover td{background:var(--bg3)}
+.tbl-fn{font-family:var(--font-mono);font-size:.75rem;color:var(--accent);cursor:pointer}
+.tbl-fn:hover{text-decoration:underline}
+
+/* ── Tags ────────────────────────────────── */
+.tag{display:inline-block;font-size:.6rem;padding:.1rem .35rem;border-radius:3px;font-family:var(--font-mono);margin-right:.2rem}
+.tag-high{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
+.tag-medium{background:color-mix(in srgb,var(--amber) 15%,transparent);color:var(--amber)}
+.tag-low{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+.tag-info{background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
+.tag-isr{background:color-mix(in srgb,var(--purple) 15%,transparent);color:var(--purple)}
+.tag-hw{background:color-mix(in srgb,var(--amber) 12%,transparent);color:var(--amber)}
+.tag-rtos{background:color-mix(in srgb,var(--cyan) 12%,transparent);color:var(--cyan)}
+
+/* ── Collapsible cards ───────────────────── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin:.5rem 0;overflow:hidden}
+.card-hdr{display:flex;align-items:center;gap:.5rem;padding:.6rem .9rem;cursor:pointer;user-select:none}
+.card-hdr:hover{background:var(--bg3)}
+.card-arrow{font-size:.6rem;color:var(--text3);transition:transform .2s}
+.card.open .card-arrow{transform:rotate(90deg)}
+.card-title{font-family:var(--font-mono);font-size:.8rem;font-weight:500;flex:1}
+.card-badge{font-size:.6rem;padding:.1rem .4rem;border-radius:3px}
+.card-body{display:none;padding:.6rem .9rem;border-top:1px solid var(--border);font-size:.78rem;color:var(--text2)}
+.card.open .card-body{display:block}
+
+/* ── Reading order ───────────────────────── */
+.read-step{display:flex;gap:.8rem;padding:.5rem 0;border-bottom:1px solid var(--border)}
+.read-step:last-child{border-bottom:none}
+.read-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.7rem;font-weight:600;flex-shrink:0}
+.read-detail{flex:1}
+.read-mod{font-family:var(--font-mono);font-weight:500;font-size:.82rem;color:var(--text)}
+.read-files{font-size:.7rem;color:var(--text3);margin-top:.15rem;font-family:var(--font-mono)}
+.read-reason{font-size:.72rem;color:var(--text2);margin-top:.15rem;font-style:italic}
+
+/* ── Questions ───────────────────────────── */
+.q-item{padding:.5rem 0;border-bottom:1px solid var(--border)}
+.q-item:last-child{border-bottom:none}
+.q-text{font-size:.82rem;color:var(--text);margin-bottom:.2rem}
+.q-evidence{font-size:.68rem;color:var(--text3);font-style:italic}
+
+/* ── Search ──────────────────────────────── */
+.search-box{width:100%;padding:.4rem .7rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:.75rem;outline:none;margin-bottom:.8rem}
+.search-box:focus{border-color:var(--accent)}
+.search-box::placeholder{color:var(--text3)}
+
+/* ── Timeline ────────────────────────────── */
+.tl-step{display:flex;gap:.8rem;margin-bottom:.4rem}
+.tl-marker{display:flex;flex-direction:column;align-items:center;width:24px;flex-shrink:0}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.tl-line{width:2px;flex:1;background:var(--border)}
+.tl-content{flex:1;padding-bottom:.6rem}
+.tl-label{font-family:var(--font-mono);font-size:.7rem;color:var(--text3);margin-bottom:.2rem}
+.tl-fns{font-family:var(--font-mono);font-size:.75rem}
+
+/* ── Tool recs ───────────────────────────── */
+.tool-card{display:flex;gap:.8rem;padding:.6rem 0;border-bottom:1px solid var(--border)}
+.tool-card:last-child{border-bottom:none}
+.tool-name{font-weight:600;font-size:.82rem;color:var(--accent)}
+.tool-desc{font-size:.75rem;color:var(--text2)}
+.tool-why{font-size:.7rem;color:var(--text3);font-style:italic;margin-top:.15rem}
+.tool-tags{margin-top:.15rem}
+
+/* ── Diagram placeholder ─────────────────── */
+.diagram-placeholder{background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;padding:2rem;text-align:center;color:var(--text3);font-size:.78rem;margin:.8rem 0}
+
+/* ── Pan/zoom diagram containers ─────────── */
+.diagram-pz{position:relative;border:1px solid var(--border);border-radius:8px;background:var(--bg2);margin:.8rem 0;overflow:hidden;cursor:grab;min-height:100px}
+.diagram-pz:active{cursor:grabbing}
+.diagram-pz svg{transform-origin:0 0;position:absolute;top:0;left:0}
+.diagram-pz .pz-controls{position:absolute;top:6px;right:6px;display:flex;gap:3px;z-index:5}
+.diagram-pz .pz-btn{width:24px;height:24px;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text2);font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.7}
+.diagram-pz .pz-btn:hover{opacity:1;border-color:var(--accent);color:var(--accent)}
+
+/* ── Hover detail popup ──────────────────── */
+.hover-popup{position:fixed;z-index:100;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:.45rem .65rem;font-size:.72rem;box-shadow:0 4px 16px rgba(0,0,0,.15);pointer-events:none;display:none;max-width:280px}
+.hover-popup b{color:var(--accent);display:block;margin-bottom:.15rem;font-family:var(--font-mono);font-size:.75rem}
+.hover-popup .hp-row{display:flex;justify-content:space-between;gap:.5rem;color:var(--text2)}
+.hover-popup .hp-label{color:var(--text3);font-size:.65rem}
+
+/* ── What-if panel ───────────────────────── */
+.whatif-panel{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.8rem;margin:.8rem 0}
+.whatif-input{width:100%;padding:.35rem .6rem;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:.75rem;outline:none}
+.whatif-input:focus{border-color:var(--accent)}
+.whatif-result{margin-top:.6rem;font-size:.78rem}
+.whatif-impact{display:flex;align-items:center;gap:.4rem;padding:.3rem 0;border-bottom:1px solid var(--border)}
+.whatif-impact:last-child{border-bottom:none}
+.impact-bar{height:6px;border-radius:3px;background:var(--accent);transition:width .3s}
+
+/* ── Timeline slider ─────────────────────── */
+.tl-slider-wrap{display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem;padding:.4rem .6rem;background:var(--bg3);border-radius:6px}
+.tl-slider{flex:1;accent-color:var(--accent);height:4px;cursor:pointer}
+.tl-slider-label{font-family:var(--font-mono);font-size:.7rem;color:var(--text2);min-width:60px}
+.tl-step.dimmed{opacity:.25;transition:opacity .2s}
+.tl-step.active .tl-dot{background:var(--green);box-shadow:0 0 6px var(--green)}
+
+/* ── Sort controls ───────────────────────── */
+.sort-bar{display:flex;gap:.3rem;margin-bottom:.5rem;flex-wrap:wrap}
+.sort-btn{background:none;border:1px solid var(--border);border-radius:4px;padding:.15rem .4rem;font-size:.62rem;color:var(--text3);cursor:pointer;font-family:var(--font-body)}
+.sort-btn:hover{border-color:var(--accent);color:var(--accent)}
+.sort-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── Print ───────────────────────────────── */
+@media print{
+  .sidebar{display:none}
+  .content{overflow:visible}
+  .section{page-break-inside:avoid;padding:1rem 0;max-width:100%}
+  .sect-title{page-break-after:avoid}
+  .tbl{page-break-inside:auto}
+  .card-body{display:block !important}
+  .diagram-pz{overflow:visible;height:auto !important}
+  .diagram-pz svg{position:static !important;transform:none !important}
+  .diagram-pz .pz-controls{display:none}
+  .hover-popup{display:none !important}
+  body{font-size:11px;color:#000;background:#fff}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-hdr">
+      <div class="sidebar-title" id="rpt-title">Project Report</div>
+      <div class="sidebar-sub" id="rpt-sub">—</div>
+    </div>
+    <div class="toc" id="toc"></div>
+    <div class="sidebar-foot" style="flex-direction:column;align-items:stretch;gap:.3rem">
+      <div style="display:flex;gap:.4rem">
+        <button class="theme-btn" onclick="toggleTheme()">◐ Theme</button>
+        <button class="theme-btn" onclick="window.print()">⎙ Print</button>
+        <button class="theme-btn" onclick="collapseAll()">▼ All</button>
+        <button class="theme-btn" onclick="expandAll()">▶ All</button>
+      </div>
+      <div style="font-size:.55rem;color:var(--text3);text-align:center">Generated by Callgraph Studio</div>
+    </div>
+  </nav>
+  <main class="content" id="content"></main>
+</div>
+<div class="hover-popup" id="hpop"></div>
+
+<script>
+/*__REPORT_DATA__*/
+
+// ══ INIT ═════════════════════════════════════════════════
+const D = REPORT_DATA;
+const G = D.graph;
+const A = D.analysis;
+const M = D.meta;
+
+document.getElementById('rpt-title').textContent = M.project_name || 'Project Report';
+document.getElementById('rpt-sub').textContent =
+  `${M.fn_count} functions · ${M.module_count} modules · ${M.file_count} files · ${new Date(M.generated_at).toLocaleDateString()}`;
+
+document.title = `${M.project_name} — Callgraph Report`;
+
+// ══ THEME ════════════════════════════════════════════════
+function toggleTheme(){ document.body.classList.toggle('dark'); }
+
+// ══ HELPERS ══════════════════════════════════════════════
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function tag(text, cls){ return `<span class="tag tag-${cls}">${esc(text)}</span>`; }
+
+function prioTag(p){
+  if(p==='high') return tag('HIGH','high');
+  if(p==='medium') return tag('MEDIUM','medium');
+  return tag('LOW','low');
+}
+
+function gradeClass(g){ return 'grade-'+(g||'C'); }
+
+// ══ SVG DIAGRAM GENERATORS ══════════════════════════════
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function svgEl(tag, attrs={}){
+  const el = document.createElementNS(SVG_NS, tag);
+  for(const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function svgText(x, y, text, attrs={}){
+  const el = svgEl('text', {x, y, 'text-anchor':'middle', 'dominant-baseline':'middle', 'font-family':'var(--font-mono)', 'font-size':'10', fill:'var(--text)', ...attrs});
+  el.textContent = text;
+  return el;
+}
+
+function svgRect(x, y, w, h, attrs={}){
+  return svgEl('rect', {x, y, width:w, height:h, rx:5, ry:5, fill:'var(--bg2)', stroke:'var(--border2)', 'stroke-width':'1.5', ...attrs});
+}
+
+function svgArrow(x1, y1, x2, y2, color='var(--text3)'){
+  const g = svgEl('g');
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.sqrt(dx*dx+dy*dy);
+  if(len < 1) return g;
+  const ux = dx/len, uy = dy/len;
+  const ax = x2 - ux*8, ay = y2 - uy*8;
+  g.appendChild(svgEl('line', {x1, y1, x2:ax, y2:ay, stroke:color, 'stroke-width':'1.5'}));
+  const px = -uy*4, py = ux*4;
+  g.appendChild(svgEl('polygon', {points:`${x2},${y2} ${ax+px},${ay+py} ${ax-px},${ay-py}`, fill:color}));
+  return g;
+}
+
+function svgCurve(x1, y1, x2, y2, color='var(--border2)'){
+  const mx = (x1+x2)/2;
+  const path = svgEl('path', {
+    d:`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`,
+    fill:'none', stroke:color, 'stroke-width':'1.2'
+  });
+  return path;
+}
+
+function svgToString(svg){
+  const s = new XMLSerializer();
+  return s.serializeToString(svg);
+}
+
+function wrapSvg(svg, maxW=800){
+  const w = parseFloat(svg.getAttribute('width'))||800;
+  const h = parseFloat(svg.getAttribute('height'))||400;
+  const id = 'pz-'+Math.random().toString(36).slice(2,8);
+  const dispH = Math.min(h+20, 400);
+  svg.setAttribute('id', id+'-svg');
+  return `<div class="diagram-pz" id="${id}" style="height:${dispH}px" data-svg-id="${id}-svg" data-sw="${w}" data-sh="${h}">
+    ${svgToString(svg)}
+    <div class="pz-controls">
+      <button class="pz-btn" onclick="pzZoom('${id}',1.3)" title="Zoom in">+</button>
+      <button class="pz-btn" onclick="pzZoom('${id}',0.77)" title="Zoom out">−</button>
+      <button class="pz-btn" onclick="pzFit('${id}')" title="Fit">⊡</button>
+    </div>
+  </div>`;
+}
+
+// ══ PAN/ZOOM ENGINE ═════════════════════════════════════
+
+const _pzState = {}; // id → {x,y,scale}
+
+function pzInit(){
+  document.querySelectorAll('.diagram-pz').forEach(el=>{
+    const id = el.id;
+    if(!id || _pzState[id]) return;
+    _pzState[id] = {x:0, y:0, scale:1};
+    let dragging = false, startX=0, startY=0, panX=0, panY=0;
+
+    el.addEventListener('mousedown', e=>{
+      if(e.button!==0) return;
+      dragging=true; startX=e.clientX; startY=e.clientY;
+      panX=_pzState[id].x; panY=_pzState[id].y;
+      e.preventDefault();
+    });
+    el.addEventListener('mousemove', e=>{
+      if(!dragging) return;
+      _pzState[id].x = panX + (e.clientX-startX);
+      _pzState[id].y = panY + (e.clientY-startY);
+      pzApply(id);
+    });
+    el.addEventListener('mouseup', ()=>dragging=false);
+    el.addEventListener('mouseleave', ()=>dragging=false);
+    el.addEventListener('wheel', e=>{
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.12 : 0.89;
+      const rect = el.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      const s = _pzState[id];
+      const ns = Math.min(6, Math.max(0.1, s.scale * factor));
+      s.x = mx - (mx - s.x) * (ns/s.scale);
+      s.y = my - (my - s.y) * (ns/s.scale);
+      s.scale = ns;
+      pzApply(id);
+    }, {passive:false});
+
+    // Auto-fit on init
+    setTimeout(()=>pzFit(id), 50);
+  });
+}
+
+function pzApply(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const svg = el.querySelector('svg');
+  if(!svg) return;
+  const s = _pzState[id];
+  svg.style.transform = `translate(${s.x}px,${s.y}px) scale(${s.scale})`;
+}
+
+function pzZoom(id, factor){
+  const s = _pzState[id]; if(!s) return;
+  const el = document.getElementById(id); if(!el) return;
+  const cx = el.clientWidth/2, cy = el.clientHeight/2;
+  const ns = Math.min(6, Math.max(0.1, s.scale * factor));
+  s.x = cx - (cx - s.x) * (ns/s.scale);
+  s.y = cy - (cy - s.y) * (ns/s.scale);
+  s.scale = ns;
+  pzApply(id);
+}
+
+function pzFit(id){
+  const el = document.getElementById(id); if(!el) return;
+  const svg = el.querySelector('svg'); if(!svg) return;
+  const sw = parseFloat(svg.getAttribute('width'))||400;
+  const sh = parseFloat(svg.getAttribute('height'))||300;
+  const cw = el.clientWidth||400, ch = el.clientHeight||300;
+  const sc = Math.min(cw/sw, ch/sh) * 0.92;
+  const s = _pzState[id] || (_pzState[id]={x:0,y:0,scale:1});
+  s.scale = sc;
+  s.x = (cw - sw*sc)/2;
+  s.y = (ch - sh*sc)/2;
+  pzApply(id);
+}
+
+// ══ HOVER DETAIL POPUP ══════════════════════════════════
+
+const nmap = {};
+G.nodes.forEach(n=>nmap[n.id]=n);
+
+function showHoverPopup(e, fn){
+  const n = nmap[fn]; if(!n) return;
+  const hp = document.getElementById('hpop');
+  let html = `<b>${esc(fn)}</b>`;
+  if(n.file) html += `<div class="hp-row"><span class="hp-label">File</span><span>${esc(n.file)}:${n.line||''}</span></div>`;
+  html += `<div class="hp-row"><span class="hp-label">Module</span><span>${esc(n.mod||n.module||'')}</span></div>`;
+  html += `<div class="hp-row"><span class="hp-label">Callers / Calls</span><span>${n.in_degree||0} / ${n.out_degree||0}</span></div>`;
+  const flags = [];
+  if(n.is_isr) flags.push('ISR');
+  if(n.is_entry) flags.push('entry');
+  if(n.has_critical) flags.push('critical');
+  if(n.delay_in_loop) flags.push('polling');
+  if(flags.length) html += `<div class="hp-row"><span class="hp-label">Flags</span><span>${flags.join(' · ')}</span></div>`;
+  if((n.writes||[]).length) html += `<div class="hp-row"><span class="hp-label">Writes</span><span style="color:var(--red)">${n.writes.slice(0,4).join(', ')}</span></div>`;
+  if((n.peripherals||[]).length) html += `<div class="hp-row"><span class="hp-label">Periph</span><span style="color:var(--amber)">${[...new Set(n.peripherals.map(p=>p.split('->')[0]))].join(', ')}</span></div>`;
+  hp.innerHTML = html;
+  hp.style.display = 'block';
+  const x = Math.min(e.clientX+12, window.innerWidth - 290);
+  const y = Math.min(e.clientY+12, window.innerHeight - hp.offsetHeight - 10);
+  hp.style.left = x+'px'; hp.style.top = y+'px';
+}
+
+function hideHoverPopup(){
+  document.getElementById('hpop').style.display='none';
+}
+
+// ══ SVG NODE INTERACTIVITY ══════════════════════════════
+
+function makeSvgNodesInteractive(){
+  document.querySelectorAll('.diagram-pz svg g[data-fn]').forEach(g=>{
+    const fn = g.dataset.fn;
+    g.style.cursor = 'pointer';
+    g.addEventListener('mouseenter', e=>showHoverPopup(e, fn));
+    g.addEventListener('mousemove', e=>{
+      const hp=document.getElementById('hpop');
+      hp.style.left=Math.min(e.clientX+12,window.innerWidth-290)+'px';
+      hp.style.top=Math.min(e.clientY+12,window.innerHeight-hp.offsetHeight-10)+'px';
+    });
+    g.addEventListener('mouseleave', hideHoverPopup);
+    g.addEventListener('click', e=>{
+      e.stopPropagation();
+      highlightConnections(fn, g.closest('svg'));
+    });
+  });
+}
+
+function highlightConnections(fn, svg){
+  if(!svg) return;
+  const callees = new Set(G.edges[fn]||[]);
+  const callers = new Set(G.callers[fn]||[]);
+  svg.querySelectorAll('g[data-fn]').forEach(g=>{
+    const f = g.dataset.fn;
+    const rect = g.querySelector('rect');
+    if(!rect) return;
+    if(f === fn){
+      rect.setAttribute('stroke','#fff');
+      rect.setAttribute('stroke-width','3');
+      rect.style.filter='drop-shadow(0 0 8px var(--accent))';
+      rect.style.opacity='1';
+    } else if(callers.has(f)){
+      rect.setAttribute('stroke','var(--red)');
+      rect.setAttribute('stroke-width','2.5');
+      rect.style.filter='drop-shadow(0 0 4px var(--red))';
+      rect.style.opacity='1';
+    } else if(callees.has(f)){
+      rect.setAttribute('stroke','var(--green)');
+      rect.setAttribute('stroke-width','2.5');
+      rect.style.filter='drop-shadow(0 0 4px var(--green))';
+      rect.style.opacity='1';
+    } else {
+      rect.style.opacity='0.2';
+      rect.style.filter='none';
+    }
+  });
+}
+
+// ══ TABLE SORT ══════════════════════════════════════════
+
+function sortTable(tableId, colIdx, type='string'){
+  const tbl = document.getElementById(tableId);
+  if(!tbl) return;
+  const tbody = tbl.querySelector('tbody');
+  const rows = [...tbody.querySelectorAll('tr')];
+  const dir = tbl.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+  tbl.dataset.sortDir = dir;
+  tbl.dataset.sortCol = colIdx;
+
+  rows.sort((a,b)=>{
+    let va = a.cells[colIdx]?.textContent?.trim()||'';
+    let vb = b.cells[colIdx]?.textContent?.trim()||'';
+    if(type==='number'){ va=parseFloat(va)||0; vb=parseFloat(vb)||0; }
+    else { va=va.toLowerCase(); vb=vb.toLowerCase(); }
+    if(va < vb) return dir==='asc'?-1:1;
+    if(va > vb) return dir==='asc'?1:-1;
+    return 0;
+  });
+  rows.forEach(r=>tbody.appendChild(r));
+
+  // Update sort button states
+  tbl.closest('.section,.card-body')?.querySelectorAll('.sort-btn').forEach(b=>{
+    b.classList.toggle('active', parseInt(b.dataset.col)===colIdx);
+  });
+}
+
+// ── Module color palette ────────────────────────────────
+const MOD_COLORS = ['#2563eb','#16a34a','#dc2626','#7c3aed','#d97706','#0891b2','#db2777','#ea580c','#65a30d','#c026d3','#0284c7','#ca8a04','#059669','#e11d48','#6366f1','#a16207','#0d9488','#eab308'];
+const _modColorMap = {};
+function modColor(mod){
+  if(!_modColorMap[mod]){
+    const mods = (G.mods||[]).filter(m=>m!=='external'&&m!=='.');
+    const idx = mods.indexOf(mod);
+    _modColorMap[mod] = MOD_COLORS[idx >= 0 ? idx % MOD_COLORS.length : Object.keys(_modColorMap).length % MOD_COLORS.length];
+  }
+  return _modColorMap[mod];
+}
+
+// ── Diagram 1: Layer Diagram ────────────────────────────
+function buildLayerDiagram(){
+  const mods = (G.mods||[]).filter(m=>m!=='external'&&m!=='.');
+  if(mods.length < 2) return '<div style="color:var(--text3);font-size:.78rem">Single module — no layer diagram needed.</div>';
+
+  // Compute layers via topological sort (same as reading order but reversed)
+  const modEdges = G.mod_edges||{};
+  const deps = {};
+  mods.forEach(m=>deps[m]=new Set());
+  for(const key of Object.keys(modEdges)){
+    const [from, to] = key.split('→');
+    if(from && to && deps[from] && deps[to] && from !== to) deps[from].add(to);
+  }
+
+  // Layer = longest path from roots
+  const layer = {};
+  const visited = new Set();
+  function dfs(m, d){
+    if(visited.has(m)) return;
+    visited.add(m);
+    layer[m] = Math.max(layer[m]||0, d);
+    for(const dep of (deps[m]||[])) dfs(dep, d); // deps go same level or below
+  }
+  // Find roots: mods that nobody depends on
+  const hasParent = new Set();
+  for(const [m, ds] of Object.entries(deps)) ds.forEach(d=>hasParent.add(d));
+  const roots = mods.filter(m=>!hasParent.has(m));
+  if(!roots.length) roots.push(mods[0]);
+
+  // BFS layering
+  const layerMap = {};
+  const q = roots.map(r=>[r,0]);
+  const vis = new Set();
+  while(q.length){
+    const [m,d] = q.shift();
+    if(vis.has(m)) continue;
+    vis.add(m);
+    layerMap[m] = d;
+    for(const dep of (deps[m]||[])){
+      if(!vis.has(dep)) q.push([dep, d+1]);
+    }
+  }
+  mods.forEach(m=>{ if(layerMap[m]===undefined) layerMap[m] = 0; });
+
+  // Group by layer
+  const byLayer = {};
+  for(const [m,l] of Object.entries(layerMap)){
+    if(!byLayer[l]) byLayer[l]=[];
+    byLayer[l].push(m);
+  }
+  const layers = Object.keys(byLayer).map(Number).sort();
+
+  // Layout
+  const NW = 130, NH = 40, HGAP = 20, VGAP = 50, PAD = 30;
+  const maxPerLayer = Math.max(...layers.map(l=>byLayer[l].length));
+  const W = Math.max(maxPerLayer * (NW+HGAP) + PAD*2, 400);
+  const H = layers.length * (NH+VGAP) + PAD*2;
+
+  const svg = svgEl('svg', {width:W, height:H, style:'display:block;max-width:100%'});
+
+  // Layer labels + bands
+  const positions = {};
+  layers.forEach((l, li)=>{
+    const row = byLayer[l];
+    const rowW = row.length*(NW+HGAP)-HGAP;
+    const xOff = (W-rowW)/2;
+    const y = PAD + li*(NH+VGAP);
+
+    // Band background
+    svg.appendChild(svgEl('rect', {x:PAD/2, y:y-8, width:W-PAD, height:NH+16, rx:8, fill:li===0?'color-mix(in srgb, var(--accent) 6%, transparent)':'color-mix(in srgb, var(--bg3) 50%, transparent)', stroke:'none'}));
+
+    row.forEach((mod, mi)=>{
+      const x = xOff + mi*(NW+HGAP);
+      positions[mod] = {x: x+NW/2, y: y+NH/2, top: y, bot: y+NH, left: x, right: x+NW};
+      const col = modColor(mod);
+      svg.appendChild(svgRect(x, y, NW, NH, {fill:'var(--bg2)', stroke:col, 'stroke-width':'2'}));
+
+      const risk = (A.risk_scores.modules||{})[mod];
+      const grade = risk ? risk.grade : '?';
+      svg.appendChild(svgText(x+NW/2, y+NH/2-4, mod.length>14?mod.slice(0,12)+'…':mod, {'font-size':'10', 'font-weight':'500', fill:col}));
+      svg.appendChild(svgText(x+NW/2, y+NH/2+10, `${risk?risk.fn_count:0} fns · ${grade}`, {'font-size':'7.5', fill:'var(--text3)'}));
+    });
+  });
+
+  // Arrows between modules
+  for(const [key, count] of Object.entries(modEdges)){
+    const [from, to] = key.split('→');
+    const pf = positions[from], pt = positions[to];
+    if(!pf || !pt || from === to) continue;
+    const opacity = Math.min(0.3 + count*0.1, 1);
+    const col = `color-mix(in srgb, var(--accent) ${Math.round(opacity*100)}%, transparent)`;
+    svg.appendChild(svgCurve(pf.x, pf.bot, pt.x, pt.top, modColor(from)));
+  }
+
+  return wrapSvg(svg, W);
+}
+
+// ── Diagram 2: Coupling Matrix ──────────────────────────
+function buildCouplingMatrix(){
+  const mods = (G.mods||[]).filter(m=>m!=='external'&&m!=='.');
+  if(mods.length < 2) return '';
+  const me = G.mod_edges||{};
+
+  const CS = 36, PAD = 90, LABEL = 80;
+  const W = PAD + mods.length*CS + 20;
+  const H = PAD + mods.length*CS + 20;
+  const svg = svgEl('svg', {width:W, height:H, style:'display:block;max-width:100%'});
+
+  // Column headers
+  mods.forEach((m,i)=>{
+    const tx = svgText(PAD+i*CS+CS/2, PAD-10, m.length>8?m.slice(0,7)+'…':m, {'font-size':'8', fill:modColor(m), 'transform':`rotate(-45,${PAD+i*CS+CS/2},${PAD-10})`});
+    svg.appendChild(tx);
+  });
+
+  // Row headers + cells
+  const maxCount = Math.max(1, ...Object.values(me));
+  mods.forEach((from,ri)=>{
+    svg.appendChild(svgText(PAD-8, PAD+ri*CS+CS/2, from.length>10?from.slice(0,9)+'…':from, {'font-size':'8', 'text-anchor':'end', fill:modColor(from)}));
+    mods.forEach((to,ci)=>{
+      const x = PAD+ci*CS, y = PAD+ri*CS;
+      const key = `${from}→${to}`;
+      const count = me[key]||0;
+      const intensity = count ? Math.round(20 + (count/maxCount)*80) : 0;
+      const col = from===to ? 'var(--bg3)' : count ? `color-mix(in srgb, ${modColor(from)} ${intensity}%, var(--bg2))` : 'var(--bg2)';
+      svg.appendChild(svgEl('rect', {x, y, width:CS-2, height:CS-2, rx:3, fill:col, stroke:'var(--border)', 'stroke-width':'0.5'}));
+      if(count) svg.appendChild(svgText(x+CS/2-1, y+CS/2-1, count.toString(), {'font-size':'8', fill:intensity>50?'#fff':'var(--text2)'}));
+    });
+  });
+
+  return wrapSvg(svg, W);
+}
+
+// ── Diagram 3: Data Flow ────────────────────────────────
+function buildDataFlowDiagram(){
+  const isrs = G.nodes.filter(n=>n.is_isr);
+  const rtos = G.rtos||{tasks:{},objects:{}};
+  const tasks = Object.entries(rtos.tasks||{});
+  const objects = Object.entries(rtos.objects||{});
+  const periphs = Object.keys(G.peripherals||{});
+
+  if(!isrs.length && !tasks.length && !periphs.length) return '<div style="color:var(--text3);font-size:.78rem">No ISR/RTOS/peripheral data for data flow diagram.</div>';
+
+  // Layout columns: ISR | RTOS Objects | Tasks | Peripherals
+  const COL = [60, 240, 420, 600];
+  const NW = 140, NH = 34, VGAP = 12, PAD = 40;
+
+  const cols = [
+    {label:'ISRs', items:isrs.map(n=>({id:n.id, sub:n.mod||''}))},
+    {label:'RTOS Objects', items:objects.map(([n,d])=>({id:n, sub:d.kind||''}))},
+    {label:'Tasks', items:tasks.map(([n])=>({id:n, sub:''}))},
+    {label:'Peripherals', items:periphs.map(p=>({id:p, sub:''}))},
+  ].filter(c=>c.items.length);
+
+  const maxItems = Math.max(...cols.map(c=>c.items.length), 1);
+  const H = maxItems * (NH+VGAP) + PAD*3;
+  const totalW = cols.length * 180 + PAD*2;
+  const svg = svgEl('svg', {width:totalW, height:H, style:'display:block;max-width:100%'});
+
+  const positions = {};
+  cols.forEach((col, ci)=>{
+    const cx = PAD + ci * 180;
+    // Column header
+    svg.appendChild(svgText(cx+NW/2, 18, col.label, {'font-size':'10', 'font-weight':'500', fill:'var(--text2)'}));
+    svg.appendChild(svgEl('line', {x1:cx, y1:28, x2:cx+NW, y2:28, stroke:'var(--border)', 'stroke-width':'1'}));
+
+    col.items.forEach((item, ii)=>{
+      const x = cx, y = PAD + ii*(NH+VGAP);
+      const color = col.label==='ISRs'?'var(--purple)':col.label==='Peripherals'?'var(--amber)':col.label==='RTOS Objects'?'var(--cyan)':'var(--accent)';
+      svg.appendChild(svgRect(x, y, NW, NH, {stroke:color, 'stroke-width':'1.5'}));
+      const label = item.id.length>16?item.id.slice(0,14)+'…':item.id;
+      svg.appendChild(svgText(x+NW/2, y+NH/2-3, label, {'font-size':'9', fill:color, 'font-weight':'500'}));
+      if(item.sub) svg.appendChild(svgText(x+NW/2, y+NH/2+9, item.sub, {'font-size':'7', fill:'var(--text3)'}));
+      positions[item.id] = {x:x+NW/2, y:y+NH/2, right:x+NW, left:x};
+    });
+  });
+
+  // Draw connections: ISR writes globals → tasks read them
+  const nmap = {};
+  G.nodes.forEach(n=>nmap[n.id]=n);
+  isrs.forEach(isr=>{
+    const writes = new Set(nmap[isr.id]?.writes||[]);
+    tasks.forEach(([tname])=>{
+      const treads = new Set(nmap[tname]?.reads||[]);
+      const shared = [...writes].filter(w=>treads.has(w));
+      if(shared.length && positions[isr.id] && positions[tname]){
+        const p1 = positions[isr.id], p2 = positions[tname];
+        svg.appendChild(svgCurve(p1.right, p1.y, p2.left, p2.y, 'var(--purple)'));
+      }
+    });
+  });
+
+  // Tasks → peripherals
+  tasks.forEach(([tname])=>{
+    const tperiphs = nmap[tname]?.peripherals||[];
+    const bases = [...new Set(tperiphs.map(p=>p.split('->')[0]))];
+    bases.forEach(base=>{
+      if(positions[tname] && positions[base]){
+        const p1 = positions[tname], p2 = positions[base];
+        svg.appendChild(svgCurve(p1.right||p1.x+70, p1.y, p2.left||p2.x-70, p2.y, 'var(--amber)'));
+      }
+    });
+  });
+
+  return wrapSvg(svg, totalW);
+}
+
+// ── Diagram 4: ISR Map ──────────────────────────────────
+function buildIsrMapDiagram(){
+  const isrs = G.nodes.filter(n=>n.is_isr);
+  if(!isrs.length) return '';
+
+  const nmap = {};
+  G.nodes.forEach(n=>nmap[n.id]=n);
+
+  const NW = 140, NH = 30, VGAP = 10, PAD = 30;
+  const COL_W = 170;
+  const H = PAD*2 + isrs.length * (NH + VGAP + 50);
+  const W = COL_W * 4 + PAD*2;
+  const svg = svgEl('svg', {width:W, height:H, style:'display:block;max-width:100%'});
+
+  // Headers
+  ['ISR Handler', 'Globals Written', 'Peripherals', 'Callees'].forEach((label, i)=>{
+    svg.appendChild(svgText(PAD + i*COL_W + NW/2, 16, label, {'font-size':'9', 'font-weight':'500', fill:'var(--text2)'}));
+  });
+
+  isrs.forEach((isr, idx)=>{
+    const y = PAD + 10 + idx * (NH + VGAP + 30);
+    const data = nmap[isr.id]||{};
+
+    // ISR box
+    svg.appendChild(svgRect(PAD, y, NW, NH, {stroke:'var(--purple)', 'stroke-width':'2'}));
+    svg.appendChild(svgText(PAD+NW/2, y+NH/2, isr.id.length>16?isr.id.slice(0,14)+'…':isr.id, {'font-size':'9', fill:'var(--purple)', 'font-weight':'500'}));
+
+    // Globals written
+    const writes = data.writes||[];
+    writes.slice(0,3).forEach((w, wi)=>{
+      const gx = PAD+COL_W, gy = y + wi*14;
+      svg.appendChild(svgText(gx+10, gy+NH/2, w.length>18?w.slice(0,16)+'…':w, {'font-size':'8', 'text-anchor':'start', fill:'var(--red)'}));
+    });
+    if(writes.length) svg.appendChild(svgCurve(PAD+NW, y+NH/2, PAD+COL_W+5, y+NH/2, 'var(--red)'));
+
+    // Peripherals
+    const periphs = [...new Set((data.peripherals||[]).map(p=>p.split('->')[0]))];
+    periphs.slice(0,3).forEach((p, pi)=>{
+      const px = PAD+COL_W*2, py = y + pi*14;
+      svg.appendChild(svgText(px+10, py+NH/2, p, {'font-size':'8', 'text-anchor':'start', fill:'var(--amber)'}));
+    });
+    if(periphs.length) svg.appendChild(svgCurve(PAD+NW, y+NH/2, PAD+COL_W*2+5, y+NH/2, 'var(--amber)'));
+
+    // Callees
+    const callees = (G.edges[isr.id]||[]).slice(0,3);
+    callees.forEach((c, ci)=>{
+      const cx = PAD+COL_W*3, cy = y + ci*14;
+      svg.appendChild(svgText(cx+10, cy+NH/2, c.length>16?c.slice(0,14)+'…':c, {'font-size':'8', 'text-anchor':'start', fill:'var(--accent)'}));
+    });
+    if(callees.length) svg.appendChild(svgCurve(PAD+NW, y+NH/2, PAD+COL_W*3+5, y+NH/2, 'var(--accent)'));
+  });
+
+  return wrapSvg(svg, W);
+}
+
+// ── Diagram 5: HW Abstraction ───────────────────────────
+function buildHwDiagram(){
+  const periph = G.peripherals||{};
+  const entries = Object.entries(periph);
+  if(!entries.length) return '';
+
+  const nmap = {};
+  G.nodes.forEach(n=>nmap[n.id]=n);
+
+  // Build layers: peripheral → direct accessors → their callers
+  const NW = 120, NH = 28, VGAP = 8, HGAP = 16, PAD = 30;
+  const layers = []; // [{label, items:[{id, color}]}]
+
+  // Layer 0: peripherals
+  const periphItems = entries.map(([name])=>({id:name, color:'var(--amber)'}));
+
+  // Layer 1: direct accessors
+  const directAccessors = new Set();
+  entries.forEach(([, data])=>{
+    (data.readers||[]).forEach(f=>directAccessors.add(f));
+    (data.writers||[]).forEach(f=>directAccessors.add(f));
+  });
+
+  // Layer 2: callers of direct accessors
+  const callerLayer = new Set();
+  directAccessors.forEach(fn=>{
+    (G.callers[fn]||[]).forEach(c=>{
+      if(!directAccessors.has(c)) callerLayer.add(c);
+    });
+  });
+
+  const l0 = periphItems;
+  const l1 = [...directAccessors].sort().map(f=>({id:f, color:modColor((nmap[f]||{}).mod||'')}));
+  const l2 = [...callerLayer].sort().slice(0,12).map(f=>({id:f, color:modColor((nmap[f]||{}).mod||'')}));
+
+  const allLayers = [
+    {label:'Application', items:l2},
+    {label:'Drivers', items:l1},
+    {label:'Hardware', items:l0},
+  ].filter(l=>l.items.length);
+
+  const maxItems = Math.max(...allLayers.map(l=>l.items.length), 1);
+  const W = Math.max(maxItems*(NW+HGAP)+PAD*2, 400);
+  const H = allLayers.length * (NH+60) + PAD*2;
+  const svg = svgEl('svg', {width:W, height:H, style:'display:block;max-width:100%'});
+
+  const positions = {};
+  allLayers.forEach((layer, li)=>{
+    const y = PAD + li*(NH+60);
+    svg.appendChild(svgText(PAD, y-6, layer.label, {'font-size':'9', 'text-anchor':'start', fill:'var(--text3)', 'font-weight':'500'}));
+    const rowW = layer.items.length*(NW+HGAP)-HGAP;
+    const xOff = Math.max(PAD, (W-rowW)/2);
+    layer.items.forEach((item, ii)=>{
+      const x = xOff + ii*(NW+HGAP);
+      svg.appendChild(svgRect(x, y, NW, NH, {stroke:item.color, 'stroke-width':'1.5'}));
+      const label = item.id.length>14?item.id.slice(0,12)+'…':item.id;
+      svg.appendChild(svgText(x+NW/2, y+NH/2, label, {'font-size':'8', fill:item.color, 'font-weight':'500'}));
+      positions[item.id] = {x:x+NW/2, y, bot:y+NH};
+    });
+  });
+
+  // Connect drivers → peripherals
+  directAccessors.forEach(fn=>{
+    entries.forEach(([pname, data])=>{
+      if([...(data.readers||[]),...(data.writers||[])].includes(fn)){
+        const p1 = positions[fn], p2 = positions[pname];
+        if(p1 && p2) svg.appendChild(svgCurve(p1.x, p1.bot, p2.x, p2.y, 'var(--amber)'));
+      }
+    });
+  });
+
+  // Connect callers → drivers
+  callerLayer.forEach(caller=>{
+    (G.edges[caller]||[]).forEach(callee=>{
+      if(directAccessors.has(callee)){
+        const p1 = positions[caller], p2 = positions[callee];
+        if(p1 && p2) svg.appendChild(svgCurve(p1.x, p1.bot, p2.x, p2.y, 'var(--accent)'));
+      }
+    });
+  });
+
+  return wrapSvg(svg, W);
+}
+
+// ── Diagram 6: Module Subgraph ──────────────────────────
+function buildModuleSubgraph(mod){
+  const nmap = {};
+  G.nodes.forEach(n=>nmap[n.id]=n);
+  const modFns = G.nodes.filter(n=>(n.mod||n.module)===mod && n.type==='project');
+  if(modFns.length < 2) return '<div style="color:var(--text3);font-size:.72rem;margin:.4rem 0">Too few functions for subgraph.</div>';
+  if(modFns.length > 40) {
+    // Only show top 40 by connectivity
+    modFns.sort((a,b)=>(b.in_degree+b.out_degree)-(a.in_degree+a.out_degree));
+    modFns.length = 40;
+  }
+
+  const modSet = new Set(modFns.map(n=>n.id));
+  const NW = 110, NH = 24, HGAP = 30, VGAP = 10, PAD = 20;
+
+  // Simple layering: in-degree=0 first
+  const inDeg = {};
+  modFns.forEach(n=>inDeg[n.id]=0);
+  modFns.forEach(n=>{
+    (G.edges[n.id]||[]).forEach(c=>{
+      if(modSet.has(c) && inDeg[c]!==undefined) inDeg[c]++;
+    });
+  });
+
+  const layer = {};
+  const q = modFns.filter(n=>inDeg[n.id]===0).map(n=>[n.id,0]);
+  if(!q.length) q.push([modFns[0].id, 0]);
+  const vis = new Set();
+  while(q.length){
+    const [n,d] = q.shift();
+    if(vis.has(n)) continue;
+    vis.add(n); layer[n]=d;
+    (G.edges[n]||[]).forEach(c=>{if(modSet.has(c)&&!vis.has(c)) q.push([c,d+1]);});
+  }
+  modFns.forEach(n=>{if(layer[n.id]===undefined) layer[n.id]=0;});
+
+  const byLayer = {};
+  modFns.forEach(n=>{const l=layer[n.id]; if(!byLayer[l]) byLayer[l]=[]; byLayer[l].push(n);});
+  const layerNums = Object.keys(byLayer).map(Number).sort();
+  const maxCol = Math.max(...layerNums.map(l=>byLayer[l].length));
+
+  const W = layerNums.length*(NW+HGAP)+PAD*2;
+  const H = maxCol*(NH+VGAP)+PAD*2;
+  const svg = svgEl('svg', {width:W, height:H, style:'display:block;max-width:100%'});
+
+  const pos = {};
+  layerNums.forEach((l,li)=>{
+    const nodes = byLayer[l];
+    const colH = nodes.length*(NH+VGAP)-VGAP;
+    const yOff = (maxCol*(NH+VGAP)-colH)/2;
+    nodes.forEach((n,i)=>{
+      const x = PAD+li*(NW+HGAP), y = PAD+yOff+i*(NH+VGAP);
+      pos[n.id]={x,y};
+      const col = modColor(mod);
+      svg.appendChild(svgRect(x, y, NW, NH, {stroke:col, 'stroke-width':'1', fill:'var(--bg2)'}));
+      const label = n.id.length>13?n.id.slice(0,11)+'…':n.id;
+      svg.appendChild(svgText(x+NW/2, y+NH/2, label, {'font-size':'8', fill:n.is_isr?'var(--purple)':col}));
+    });
+  });
+
+  // Internal edges
+  modFns.forEach(n=>{
+    (G.edges[n.id]||[]).forEach(c=>{
+      if(!modSet.has(c)) return;
+      const p1=pos[n.id], p2=pos[c];
+      if(p1&&p2) svg.appendChild(svgCurve(p1.x+NW, p1.y+NH/2, p2.x, p2.y+NH/2, modColor(mod)));
+    });
+  });
+
+  return wrapSvg(svg, W);
+}
+
+// ══ SECTION BUILDERS ════════════════════════════════════
+
+const sections = [];
+
+function addSection(id, title, buildFn){
+  sections.push({id, title, buildFn});
+}
+
+// ── 1. Header & Health ──────────────────────────────────
+addSection('header', '◈ Overview', ()=>{
+  const risk = A.risk_scores.overall || {score:0, grade:'?'};
+  return `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val">${M.fn_count}</div><div class="stat-label">Functions</div></div>
+      <div class="stat-card"><div class="stat-val">${M.edge_count}</div><div class="stat-label">Call Edges</div></div>
+      <div class="stat-card"><div class="stat-val">${M.module_count}</div><div class="stat-label">Modules</div></div>
+      <div class="stat-card"><div class="stat-val">${M.file_count}</div><div class="stat-label">Source Files</div></div>
+      <div class="stat-card"><div class="stat-val">${M.race_count}</div><div class="stat-label">Race Candidates</div></div>
+      <div class="stat-card"><div class="stat-val">${Object.keys(G.peripherals||{}).length}</div><div class="stat-label">Peripherals</div></div>
+    </div>
+    <div class="health-row">
+      <div class="health-gauge ${gradeClass(risk.grade)}">${risk.grade}</div>
+      <div class="health-detail">
+        <div style="font-weight:500;font-size:.9rem">Project Health: ${risk.score}/100</div>
+        <div style="font-size:.72rem;color:var(--text3);margin-top:.15rem">
+          Based on coupling density, race conditions, ISR complexity, and dead code ratio
+        </div>
+      </div>
+    </div>
+  `;
+});
+
+// ── 2. Reading Order ────────────────────────────────────
+addSection('reading', '📖 Reading Order', ()=>{
+  const order = A.reading_order || [];
+  if(!order.length) return '<div style="color:var(--text3)">No module dependencies found.</div>';
+  return '<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">Recommended sequence for understanding the codebase — read from bottom (drivers) to top (application logic).</div>'
+    + order.map((r,i)=> `
+      <div class="read-step">
+        <div class="read-num">${i+1}</div>
+        <div class="read-detail">
+          <div class="read-mod">${esc(r.module)}</div>
+          <div class="read-files">${r.files.map(f=>esc(f)).join(', ')}</div>
+          <div class="read-reason">${esc(r.reason)}</div>
+        </div>
+      </div>
+    `).join('');
+});
+
+// ── 3. Inferred Requirements ────────────────────────────
+addSection('requirements', '📋 Inferred Requirements', ()=>{
+  const reqs = A.requirements || [];
+  if(!reqs.length) return '<div style="color:var(--text3)">No requirements inferred.</div>';
+  const cats = [...new Set(reqs.map(r=>r.category))];
+  let html = `<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">Auto-inferred from code structure. Confidence: 🟢 directly observable, 🟡 inferred, 🔴 speculation.</div>`;
+  for(const cat of cats){
+    const catReqs = reqs.filter(r=>r.category===cat);
+    html += `<div style="font-weight:500;margin:.8rem 0 .3rem;text-transform:capitalize">${cat}</div>`;
+    html += `<table class="tbl"><thead><tr><th>ID</th><th>Requirement</th><th>Evidence</th><th>Conf.</th></tr></thead><tbody>`;
+    catReqs.forEach(r=>{
+      const conf = r.confidence==='high'?'🟢':r.confidence==='medium'?'🟡':'🔴';
+      html += `<tr><td style="font-family:var(--font-mono);font-size:.7rem">${r.id}</td><td>${esc(r.description)}</td><td style="font-size:.7rem;color:var(--text3)">${esc(r.evidence)}</td><td>${conf}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  return html;
+});
+
+// ── 4. Questions ────────────────────────────────────────
+addSection('questions', '❓ Handover Questions', ()=>{
+  const qs = A.questions || [];
+  if(!qs.length) return '<div style="color:var(--text3)">No questions generated.</div>';
+  const cats = [...new Set(qs.map(q=>q.category))];
+  let html = '<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">Questions the new developer should ask the departing team member.</div>';
+  for(const cat of cats){
+    const catQs = qs.filter(q=>q.category===cat);
+    html += `<div style="font-weight:500;margin:.8rem 0 .3rem;text-transform:capitalize">${cat} (${catQs.length})</div>`;
+    catQs.forEach(q=>{
+      html += `<div class="q-item">
+        <div class="q-text">${prioTag(q.priority)} ${esc(q.question)}</div>
+        <div class="q-evidence">${esc(q.evidence)}</div>
+      </div>`;
+    });
+  }
+  return html;
+});
+
+// ── 5. Architecture Layers ──────────────────────────────
+addSection('layers', '🏗 Architecture Layers', ()=>{
+  const risk = A.risk_scores.modules || {};
+  const diff = A.change_difficulty || {};
+  const mods = G.mods || [];
+  let html = buildLayerDiagram();
+  html += `<table class="tbl"><thead><tr><th>Module</th><th>Functions</th><th>Health</th><th>Change Difficulty</th></tr></thead><tbody>`;
+  mods.filter(m=>m!=='external'&&m!=='.').forEach(mod=>{
+    const r = risk[mod]||{score:0,grade:'?',fn_count:0};
+    const d = diff[mod]||{difficulty:'?',score:0};
+    html += `<tr>
+      <td class="tbl-fn">${esc(mod)}</td>
+      <td>${r.fn_count||0}</td>
+      <td><span class="health-gauge ${gradeClass(r.grade)}" style="width:28px;height:28px;font-size:.7rem;display:inline-flex;border-width:2px">${r.grade}</span> ${r.score}</td>
+      <td>${tag(d.difficulty, d.difficulty==='critical'||d.difficulty==='high'?'high':d.difficulty==='medium'?'medium':'low')} ${d.reasons?d.reasons.slice(0,2).map(r=>'<span style="font-size:.65rem;color:var(--text3)">'+esc(r)+'</span>').join(' · '):''}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
+});
+
+// ── 6. Module Coupling ──────────────────────────────────
+addSection('coupling', '🔗 Module Coupling', ()=>{
+  const me = G.mod_edges||{};
+  const pairs = Object.entries(me).sort((a,b)=>b[1]-a[1]);
+  if(!pairs.length) return '<div style="color:var(--text3)">No cross-module edges.</div>';
+  let html = buildCouplingMatrix();
+  html += `<table class="tbl"><thead><tr><th>From → To</th><th>Edges</th><th>Density</th></tr></thead><tbody>`;
+  pairs.slice(0,30).forEach(([key, count])=>{
+    const bar = '█'.repeat(Math.min(count, 20));
+    html += `<tr><td style="font-family:var(--font-mono);font-size:.75rem">${esc(key)}</td><td>${count}</td><td style="color:var(--accent);font-family:var(--font-mono);font-size:.6rem">${bar}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
+});
+
+// ── 7. Data Flow ────────────────────────────────────────
+addSection('dataflow', '🔄 System Data Flow', ()=>{
+  return buildDataFlowDiagram();
+});
+
+// ── 8. Boot Sequence ────────────────────────────────────
+addSection('boot', '🚀 Boot Sequence', ()=>{
+  const tl = A.timeline||[];
+  if(!tl.length) return '<div style="color:var(--text3)">No entry point found.</div>';
+  let html = '<div style="color:var(--text2);font-size:.78rem;margin-bottom:.8rem">Initialization call sequence from entry point.</div>';
+  tl.forEach((step, i)=>{
+    const isLast = i===tl.length-1;
+    html += `<div class="tl-step">
+      <div class="tl-marker"><div class="tl-dot"></div>${isLast?'':'<div class="tl-line"></div>'}</div>
+      <div class="tl-content">
+        <div class="tl-label">${esc(step.label)}</div>
+        <div class="tl-fns">${step.functions.map(f=>`<span class="tbl-fn">${esc(f.fn)}</span> <span style="font-size:.6rem;color:var(--text3)">${esc(f.mod)}</span>`).join(' · ')}</div>
+      </div>
+    </div>`;
+  });
+  return html;
+});
+
+// ── 9. Interrupt Architecture ───────────────────────────
+addSection('interrupts', '⚡ Interrupt Architecture', ()=>{
+  const isrs = G.nodes.filter(n=>n.is_isr);
+  if(!isrs.length) return '<div style="color:var(--text3)">No ISR handlers detected.</div>';
+  let html = buildIsrMapDiagram();
+  html += `<table class="tbl"><thead><tr><th>ISR</th><th>Module</th><th>Writes</th><th>Peripherals</th><th>Calls</th></tr></thead><tbody>`;
+  isrs.forEach(n=>{
+    html += `<tr>
+      <td class="tbl-fn">${esc(n.id)}</td>
+      <td>${esc(n.mod||n.module||'')}</td>
+      <td style="font-family:var(--font-mono);font-size:.7rem">${(n.writes||[]).slice(0,5).map(w=>esc(w)).join(', ')}</td>
+      <td style="font-family:var(--font-mono);font-size:.7rem;color:var(--amber)">${(n.peripherals||[]).slice(0,5).map(p=>esc(p)).join(', ')}</td>
+      <td>${n.out_degree||0}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
+});
+
+// ── 10. Hardware Interface ──────────────────────────────
+addSection('hardware', '◈ Hardware Interface', ()=>{
+  const periph = G.peripherals||{};
+  const entries = Object.entries(periph);
+  if(!entries.length) return '<div style="color:var(--text3)">No peripheral access detected.</div>';
+  let html = buildHwDiagram();
+  html += `<table class="tbl"><thead><tr><th>Peripheral</th><th>Readers</th><th>Writers</th></tr></thead><tbody>`;
+  entries.sort((a,b)=>(b[1].readers||[]).length+(b[1].writers||[]).length-(a[1].readers||[]).length-(a[1].writers||[]).length);
+  entries.forEach(([name, data])=>{
+    html += `<tr>
+      <td style="font-family:var(--font-mono);font-weight:500;color:var(--amber)">${esc(name)}</td>
+      <td style="font-size:.72rem">${(data.readers||[]).map(f=>`<span class="tbl-fn">${esc(f)}</span>`).join(', ')}</td>
+      <td style="font-size:.72rem">${(data.writers||[]).map(f=>`<span class="tbl-fn">${esc(f)}</span>`).join(', ')}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
+});
+
+// ── 11. Modules ─────────────────────────────────────────
+addSection('modules', '📦 Modules', ()=>{
+  const risk = A.risk_scores.modules||{};
+  const diff = A.change_difficulty||{};
+  const nmap = {};
+  G.nodes.forEach(n=>nmap[n.id]=n);
+  const mods = (G.mods||[]).filter(m=>m!=='external'&&m!=='.');
+  if(!mods.length) return '<div style="color:var(--text3)">Single-module project.</div>';
+  return mods.map(mod=>{
+    const r = risk[mod]||{score:0,grade:'?',factors:{}};
+    const d = diff[mod]||{difficulty:'?',reasons:[]};
+    const modFns = G.nodes.filter(n=>(n.mod||n.module)===mod);
+    const files = [...new Set(modFns.map(n=>n.file).filter(Boolean))].sort();
+    return `<div class="card" onclick="this.classList.toggle('open')">
+      <div class="card-hdr">
+        <span class="card-arrow">▶</span>
+        <span class="card-title">${esc(mod)}</span>
+        <span class="card-badge ${gradeClass(r.grade)}" style="border:1px solid;border-radius:4px;font-size:.6rem;padding:.1rem .3rem">${r.grade} ${r.score}</span>
+        <span style="font-size:.65rem;color:var(--text3)">${modFns.length} fns · ${files.length} files</span>
+      </div>
+      <div class="card-body">
+        <div style="margin-bottom:.5rem"><b>Files:</b> ${files.map(f=>'<span style="font-family:var(--font-mono);font-size:.72rem">'+esc(f)+'</span>').join(', ')}</div>
+        <div style="margin-bottom:.5rem"><b>Change difficulty:</b> ${tag(d.difficulty, d.difficulty==='high'||d.difficulty==='critical'?'high':d.difficulty==='medium'?'medium':'low')}
+          ${d.reasons.map(r=>'<span style="font-size:.68rem;color:var(--text3)"> · '+esc(r)+'</span>').join('')}</div>
+        <div style="margin-bottom:.3rem"><b>Risk factors:</b>
+          fan-out: ${r.factors.avg_fan_out||0} ·
+          cross-module: ${r.factors.cross_module_edges||0} ·
+          races: ${r.factors.race_count||0} ·
+          ISRs: ${r.factors.isr_count||0} ·
+          dead: ${r.factors.dead_code||0} (${r.factors.dead_ratio||0}%)</div>
+        <div style="margin:.5rem 0"><b>Call graph:</b></div>
+        ${buildModuleSubgraph(mod)}
+        <table class="tbl" style="margin-top:.5rem"><thead><tr><th>Function</th><th>In</th><th>Out</th><th>Flags</th></tr></thead><tbody>
+        ${modFns.sort((a,b)=>(b.in_degree||0)-(a.in_degree||0)).slice(0,20).map(n=>`<tr>
+          <td class="tbl-fn">${esc(n.id)}</td><td>${n.in_degree||0}</td><td>${n.out_degree||0}</td>
+          <td>${n.is_isr?tag('ISR','isr'):''}${n.is_entry?tag('entry','info'):''}${n.has_critical?tag('critical','medium'):''}${(n.peripherals||[]).length?tag('hw','hw'):''}</td>
+        </tr>`).join('')}
+        ${modFns.length>20?`<tr><td colspan="4" style="color:var(--text3);font-style:italic">…and ${modFns.length-20} more</td></tr>`:''}
+        </tbody></table>
+      </div>
+    </div>`;
+  }).join('');
+});
+
+// ── 12. Patterns ────────────────────────────────────────
+addSection('patterns', '🔬 Code Patterns', ()=>{
+  const patterns = A.patterns||[];
+  if(!patterns.length) return '<div style="color:var(--text3)">No specific patterns detected.</div>';
+  return patterns.map(p=>`
+    <div class="card" onclick="this.classList.toggle('open')">
+      <div class="card-hdr">
+        <span class="card-arrow">▶</span>
+        <span class="card-title">${esc(p.label)}</span>
+        ${tag(p.confidence, p.confidence==='high'?'info':'medium')}
+      </div>
+      <div class="card-body">
+        <div>${esc(p.description)}</div>
+        <div style="margin-top:.3rem;font-family:var(--font-mono);font-size:.72rem">${p.functions.map(f=>`<span class="tbl-fn">${esc(f)}</span>`).join(', ')}</div>
+      </div>
+    </div>
+  `).join('');
+});
+
+// ── 13. Shared State & Races ────────────────────────────
+addSection('races', '⚠ Shared State & Races', ()=>{
+  const races = G.races||[];
+  const globals = G.globals||{};
+  let html = '';
+  if(races.length){
+    html += `<div style="font-weight:500;margin-bottom:.4rem">Race Candidates (${races.length})</div>`;
+    html += `<table class="tbl"><thead><tr><th>Variable</th><th>ISR Writers</th><th>Task</th><th>Access</th><th>Protected</th><th>Severity</th></tr></thead><tbody>`;
+    races.forEach(r=>{
+      html += `<tr>
+        <td style="font-family:var(--font-mono);font-size:.72rem">${esc(r.var)}</td>
+        <td style="font-size:.72rem">${(r.isr_writers||[]).map(f=>`<span class="tbl-fn">${esc(f)}</span>`).join(', ')}</td>
+        <td class="tbl-fn">${esc(r.task_fn)}</td>
+        <td>${r.task_access}</td>
+        <td>${r.protected?'✓':'✗'}</td>
+        <td>${prioTag(r.severity)}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  const glEntries = Object.entries(globals).sort((a,b)=>(b[1].volatile?1:0)-(a[1].volatile?1:0));
+  if(glEntries.length){
+    html += `<div style="font-weight:500;margin:1rem 0 .4rem">Global Variables (${glEntries.length})</div>`;
+    html += `<input class="search-box" placeholder="Filter globals…" oninput="filterTable(this,'globals-tbl')">`;
+    html += `<table class="tbl" id="globals-tbl"><thead><tr><th>Name</th><th>File</th><th>Volatile</th><th>Extern</th></tr></thead><tbody>`;
+    glEntries.forEach(([name, meta])=>{
+      html += `<tr><td style="font-family:var(--font-mono);font-size:.72rem">${esc(name)}</td><td style="font-size:.7rem;color:var(--text3)">${esc(meta.file||'')}</td><td>${meta.volatile?'✓':''}</td><td>${meta.extern?'✓':''}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  return html || '<div style="color:var(--text3)">No shared state or races detected.</div>';
+});
+
+// ── 14. RTOS Architecture ───────────────────────────────
+addSection('rtos', '🔄 RTOS Architecture', ()=>{
+  const rtos = G.rtos||{tasks:{},objects:{}};
+  const tasks = Object.entries(rtos.tasks||{});
+  const objects = Object.entries(rtos.objects||{});
+  if(!tasks.length && !objects.length) return '<div style="color:var(--text3)">No RTOS usage detected.</div>';
+  let html = '';
+  if(tasks.length){
+    html += `<div style="font-weight:500;margin-bottom:.4rem">Tasks (${tasks.length})</div>`;
+    html += `<table class="tbl"><thead><tr><th>Task</th><th>Creates</th><th>Sends</th><th>Receives</th><th>Mutexes</th></tr></thead><tbody>`;
+    tasks.forEach(([name, data])=>{
+      html += `<tr>
+        <td class="tbl-fn">${esc(name)}</td>
+        <td style="font-size:.7rem">${(data.creates||[]).join(', ')}</td>
+        <td style="font-size:.7rem">${(data.sends_to||[]).join(', ')}</td>
+        <td style="font-size:.7rem">${(data.recvs_from||[]).join(', ')}</td>
+        <td style="font-size:.7rem">${[...(data.takes||[]),...(data.gives||[])].join(', ')}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  if(objects.length){
+    html += `<div style="font-weight:500;margin:1rem 0 .4rem">RTOS Objects (${objects.length})</div>`;
+    html += `<table class="tbl"><thead><tr><th>Name</th><th>Kind</th><th>Users</th></tr></thead><tbody>`;
+    objects.forEach(([name, data])=>{
+      html += `<tr><td style="font-family:var(--font-mono)">${esc(name)}</td><td>${tag(data.kind||'?','rtos')}</td><td style="font-size:.72rem">${(data.users||[]).map(u=>`<span class="tbl-fn">${esc(u)}</span>`).join(', ')}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  return html;
+});
+
+// ── 15. Code Health ─────────────────────────────────────
+addSection('health', '🏥 Code Health', ()=>{
+  const bus = A.bus_factor||[];
+  let html = '';
+
+  // Bus factor
+  if(bus.length){
+    html += `<div style="font-weight:500;margin-bottom:.4rem">Bus Factor — Single Points of Failure</div>`;
+    html += '<div style="color:var(--text2);font-size:.72rem;margin-bottom:.5rem">If this function breaks, this many other functions become unreachable.</div>';
+    html += `<table class="tbl"><thead><tr><th>Function</th><th>Impact</th><th>Module</th><th>File</th></tr></thead><tbody>`;
+    bus.slice(0,15).forEach(b=>{
+      html += `<tr><td class="tbl-fn">${esc(b.fn)}</td><td style="font-family:var(--font-mono);font-weight:600;color:${b.impact>10?'var(--red)':b.impact>5?'var(--amber)':'var(--text)'}">${b.impact} fns affected</td><td>${esc(b.mod)}</td><td style="font-size:.7rem;color:var(--text3)">${esc(b.file)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+
+  // Dead code
+  const dead = G.nodes.filter(n=>n.type==='project'&&(n.in_degree||0)===0&&!n.is_isr&&!n.is_entry&&n.id!=='main');
+  if(dead.length){
+    html += `<div style="font-weight:500;margin:1rem 0 .4rem">Dead Code Candidates (${dead.length})</div>`;
+    html += `<table class="tbl"><thead><tr><th>Function</th><th>Module</th><th>File</th></tr></thead><tbody>`;
+    dead.slice(0,20).forEach(n=>{
+      html += `<tr><td class="tbl-fn">${esc(n.id)}</td><td>${esc(n.mod||n.module||'')}</td><td style="font-size:.7rem;color:var(--text3)">${esc(n.file||'')}</td></tr>`;
+    });
+    if(dead.length>20) html += `<tr><td colspan="3" style="color:var(--text3)">…and ${dead.length-20} more</td></tr>`;
+    html += '</tbody></table>';
+  }
+
+  return html || '<div style="color:var(--text3)">No significant health issues.</div>';
+});
+
+// ── 15b. What-If Explorer ───────────────────────────────
+addSection('whatif', '🔮 What-If Explorer', ()=>{
+  return `
+    <div style="color:var(--text2);font-size:.78rem;margin-bottom:.6rem">Pick any function — see what happens if you change it. Shows the blast radius: all functions affected directly and transitively.</div>
+    <div class="whatif-panel">
+      <input class="whatif-input" id="whatif-inp" placeholder="Type function name…" oninput="whatifAutocomplete(this.value)" onkeydown="whatifKey(event)">
+      <div id="whatif-ac" style="margin-top:.3rem"></div>
+      <div class="whatif-result" id="whatif-result"></div>
+    </div>
+  `;
+});
+
+// ── 16. Function Index ──────────────────────────────────
+addSection('index', '📇 Function Index', ()=>{
+  const fns = G.nodes.filter(n=>n.type==='project').sort((a,b)=>a.id.localeCompare(b.id));
+  let html = `<input class="search-box" placeholder="Search functions…" oninput="filterTable(this,'fn-index-tbl')">`;
+  html += `<div class="sort-bar">Sort: <button class="sort-btn active" data-col="0" onclick="sortTable('fn-index-tbl',0)">Name</button><button class="sort-btn" data-col="1" onclick="sortTable('fn-index-tbl',1)">Module</button><button class="sort-btn" data-col="3" onclick="sortTable('fn-index-tbl',3,'number')">Callers</button><button class="sort-btn" data-col="4" onclick="sortTable('fn-index-tbl',4,'number')">Calls</button></div>`;
+  html += `<table class="tbl" id="fn-index-tbl"><thead><tr><th>Function</th><th>Module</th><th>File</th><th>In</th><th>Out</th><th>Flags</th></tr></thead><tbody>`;
+  fns.forEach(n=>{
+    html += `<tr>
+      <td class="tbl-fn">${esc(n.id)}</td>
+      <td style="font-size:.7rem">${esc(n.mod||n.module||'')}</td>
+      <td style="font-size:.7rem;color:var(--text3)">${esc(n.file||'')}</td>
+      <td>${n.in_degree||0}</td><td>${n.out_degree||0}</td>
+      <td>${n.is_isr?tag('ISR','isr'):''}${n.is_entry?tag('entry','info'):''}${n.has_critical?tag('crit','medium'):''}${(n.peripherals||[]).length?tag('hw','hw'):''}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
+});
+
+// ── 17. Recommended Tools ───────────────────────────────
+addSection('tools', '🧰 Recommended Tools', ()=>{
+  const tools = [];
+  const races = (G.races||[]).length;
+  const isrs = G.nodes.filter(n=>n.is_isr).length;
+  const hasRtos = Object.keys((G.rtos||{tasks:{}}).tasks||{}).length > 0;
+  const periphs = Object.keys(G.peripherals||{}).length;
+
+  // Always recommend
+  tools.push({name:'Valgrind (Memcheck)',desc:'Runtime memory error detector — leaks, overflows, use-after-free',category:'dynamic',free:true,
+    why:'Essential for any C project'});
+  tools.push({name:'cppcheck',desc:'Static analysis — undefined behavior, memory leaks, style issues',category:'static',free:true,
+    why:'Catches bugs the compiler misses'});
+
+  if(races>0){
+    tools.push({name:'ThreadSanitizer',desc:'Runtime race condition detector (compile with -fsanitize=thread)',category:'dynamic',free:true,
+      why:`${races} race candidates detected in your project`});
+    tools.push({name:'PC-lint / Gimpel',desc:'Static analysis with deep concurrency checks for embedded C',category:'static',free:false,
+      why:`ISR-task shared data needs static verification`});
+  }
+  if(hasRtos){
+    tools.push({name:'Tracealyzer (Percepio)',desc:'Visual RTOS trace — task execution, queue usage, timing analysis',category:'rtos',free:false,
+      why:`${Object.keys(G.rtos.tasks).length} RTOS tasks detected — runtime visualization helps debug timing`});
+    tools.push({name:'SystemView (Segger)',desc:'Free real-time recording of RTOS events + interrupts',category:'rtos',free:true,
+      why:'Complements Tracealyzer with ISR timing data'});
+  }
+  if(isrs>0){
+    tools.push({name:'GCC -fstack-usage',desc:'Compile-time stack usage per function',category:'analysis',free:true,
+      why:`${isrs} ISRs detected — stack sizing is critical for interrupt handlers`});
+  }
+  if(periphs>0){
+    tools.push({name:'QEMU + GDB',desc:'Emulate ARM Cortex-M targets — debug without hardware',category:'debug',free:true,
+      why:`${periphs} peripherals accessed — emulation catches register access bugs`});
+    tools.push({name:'Ozone (Segger)',desc:'Visual debugger with peripheral register views and live watch',category:'debug',free:false,
+      why:'Register-level debugging for peripheral interaction'});
+  }
+  tools.push({name:'Doxygen',desc:'API documentation generator from source code comments',category:'documentation',free:true,
+    why:'Auto-generate reference docs from your codebase'});
+  tools.push({name:'PVS-Studio',desc:'Deep static analysis for C/C++ with embedded-specific checks',category:'static',free:false,
+    why:'Finds subtle bugs: integer overflow, null deref, MISRA violations'});
+  tools.push({name:'gcov / lcov',desc:'Code coverage measurement — see which lines actually execute',category:'testing',free:true,
+    why:'Verify dead code candidates and test completeness'});
+
+  return tools.map(t=>`
+    <div class="tool-card">
+      <div style="flex:1">
+        <div class="tool-name">${esc(t.name)} ${t.free?tag('FREE','info'):tag('COMMERCIAL','medium')}</div>
+        <div class="tool-desc">${esc(t.desc)}</div>
+        <div class="tool-why">→ ${esc(t.why)}</div>
+      </div>
+    </div>
+  `).join('');
+});
+
+// ── Glossary (separate, always last) ────────────────────
+addSection('glossary', '📚 Glossary', ()=>{
+  const entries = A.glossary||[];
+  if(!entries.length) return '<div style="color:var(--text3)">No entries.</div>';
+  let html = `<input class="search-box" id="glossary-search" placeholder="Search everything…" oninput="filterTable(this,'glossary-tbl')">`;
+  html += `<table class="tbl" id="glossary-tbl"><thead><tr><th>Name</th><th>Kind</th><th>Module</th><th>Detail</th><th>Tags</th></tr></thead><tbody>`;
+  entries.forEach(e=>{
+    html += `<tr>
+      <td style="font-family:var(--font-mono);font-size:.72rem">${esc(e.name)}</td>
+      <td>${tag(e.kind,'info')}</td>
+      <td style="font-size:.7rem">${esc(e.module||'')}</td>
+      <td style="font-size:.7rem;color:var(--text2)">${esc(e.detail)}</td>
+      <td>${(e.tags||[]).map(t=>tag(t,'info')).join('')}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
+});
+
+// ══ RENDER ═══════════════════════════════════════════════
+
+function renderAll(){
+  const content = document.getElementById('content');
+  const toc = document.getElementById('toc');
+  let contentHtml = '';
+  let tocHtml = '';
+
+  sections.forEach((s,i)=>{
+    contentHtml += `<div class="section" id="sect-${s.id}">
+      <div class="sect-title">${s.title}</div>
+      <div class="sect-sub" id="sub-${s.id}"></div>
+      <div id="body-${s.id}"></div>
+    </div>`;
+    if(i>0 && (i===4||i===7||i===11||i===14)) tocHtml += '<div class="toc-sep"></div>';
+    tocHtml += `<a class="toc-item" data-sect="${s.id}" onclick="scrollTo('${s.id}')">${s.title}</a>`;
+  });
+
+  content.innerHTML = contentHtml;
+  toc.innerHTML = tocHtml;
+
+  // Build each section
+  sections.forEach(s=>{
+    try{
+      document.getElementById('body-'+s.id).innerHTML = s.buildFn();
+    }catch(e){
+      document.getElementById('body-'+s.id).innerHTML = `<div style="color:var(--red)">Error: ${e.message}</div>`;
+      console.error(s.id, e);
+    }
+  });
+
+  // Scroll spy
+  const contentEl = document.getElementById('content');
+  contentEl.addEventListener('scroll', updateActiveToc);
+  updateActiveToc();
+}
+
+function scrollTo(id){
+  const el = document.getElementById('sect-'+id);
+  if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function updateActiveToc(){
+  const contentEl = document.getElementById('content');
+  const scrollTop = contentEl.scrollTop;
+  let activeId = sections[0].id;
+  sections.forEach(s=>{
+    const el = document.getElementById('sect-'+s.id);
+    if(el && el.offsetTop - 100 <= scrollTop) activeId = s.id;
+  });
+  document.querySelectorAll('.toc-item').forEach(t=>{
+    t.classList.toggle('active', t.dataset.sect===activeId);
+  });
+}
+
+function filterTable(input, tableId){
+  const q = input.value.toLowerCase();
+  const tbl = document.getElementById(tableId);
+  if(!tbl) return;
+  tbl.querySelectorAll('tbody tr').forEach(row=>{
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// ══ WHAT-IF EXPLORER ════════════════════════════════════
+
+function whatifAutocomplete(q){
+  const ac = document.getElementById('whatif-ac');
+  if(!q || q.length<2){ ac.innerHTML=''; return; }
+  const ql = q.toLowerCase();
+  const matches = G.nodes.filter(n=>n.type==='project'&&n.id.toLowerCase().includes(ql)).slice(0,6);
+  ac.innerHTML = matches.map(n=>
+    `<span class="tbl-fn" style="margin-right:.5rem" onclick="whatifRun('${esc(n.id)}')">${esc(n.id)}</span>`
+  ).join('');
+}
+
+function whatifKey(e){
+  if(e.key==='Enter'){
+    const v = document.getElementById('whatif-inp').value.trim();
+    if(v) whatifRun(v);
+  }
+}
+
+function whatifRun(fn){
+  const result = document.getElementById('whatif-result');
+  document.getElementById('whatif-inp').value = fn;
+  document.getElementById('whatif-ac').innerHTML = '';
+
+  const n = nmap[fn];
+  if(!n){ result.innerHTML='<div style="color:var(--red)">Function not found.</div>'; return; }
+
+  // Forward impact (what this function can reach)
+  const forward = {};
+  const fq = [fn];
+  const fvis = new Set([fn]);
+  while(fq.length){
+    const c = fq.shift();
+    (G.edges[c]||[]).forEach(t=>{
+      if(!fvis.has(t)){ fvis.add(t); fq.push(t); forward[t]=(forward[c]||0)+1; }
+    });
+  }
+
+  // Reverse impact (what calls this)
+  const reverse = {};
+  const rq = [fn];
+  const rvis = new Set([fn]);
+  while(rq.length){
+    const c = rq.shift();
+    (G.callers[c]||[]).forEach(t=>{
+      if(!rvis.has(t)){ rvis.add(t); rq.push(t); reverse[t]=(reverse[c]||0)+1; }
+    });
+  }
+
+  const fwdList = Object.entries(forward).sort((a,b)=>a[1]-b[1]);
+  const revList = Object.entries(reverse).sort((a,b)=>a[1]-b[1]);
+  const maxImpact = Math.max(fwdList.length, 1);
+
+  // Globals touched
+  const writes = n.writes||[];
+  const reads = n.reads||[];
+  const periphs = [...new Set((n.peripherals||[]).map(p=>p.split('->')[0]))];
+
+  // Race involvement
+  const races = (G.races||[]).filter(r=>r.task_fn===fn || (r.isr_writers||[]).includes(fn));
+
+  let html = `<div style="font-weight:500;margin-bottom:.3rem">${esc(fn)} — Impact Analysis</div>`;
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.6rem">
+    <div class="stat-card" style="padding:.4rem"><div class="stat-val" style="font-size:1rem">${fwdList.length}</div><div class="stat-label">Downstream</div></div>
+    <div class="stat-card" style="padding:.4rem"><div class="stat-val" style="font-size:1rem">${revList.length}</div><div class="stat-label">Upstream</div></div>
+    <div class="stat-card" style="padding:.4rem"><div class="stat-val" style="font-size:1rem;color:${races.length?'var(--red)':'var(--green)'}">${races.length}</div><div class="stat-label">Races</div></div>
+  </div>`;
+
+  if(writes.length) html += `<div style="font-size:.72rem;margin-bottom:.2rem"><b style="color:var(--red)">Writes:</b> ${writes.map(w=>esc(w)).join(', ')}</div>`;
+  if(reads.length) html += `<div style="font-size:.72rem;margin-bottom:.2rem"><b style="color:var(--accent)">Reads:</b> ${reads.slice(0,8).map(r=>esc(r)).join(', ')}</div>`;
+  if(periphs.length) html += `<div style="font-size:.72rem;margin-bottom:.4rem"><b style="color:var(--amber)">Peripherals:</b> ${periphs.join(', ')}</div>`;
+
+  if(fwdList.length){
+    html += `<div style="font-weight:500;font-size:.78rem;margin:.4rem 0 .2rem">↓ Downstream (affected if changed)</div>`;
+    fwdList.slice(0,12).forEach(([f, depth])=>{
+      const pct = Math.round((1-depth/Math.max(...fwdList.map(x=>x[1]),1))*100);
+      const m = nmap[f];
+      html += `<div class="whatif-impact">
+        <span class="tbl-fn" style="width:140px;flex-shrink:0">${esc(f)}</span>
+        <div style="flex:1;background:var(--bg3);border-radius:3px;height:6px"><div class="impact-bar" style="width:${Math.max(pct,8)}%;background:var(--green)"></div></div>
+        <span style="font-size:.6rem;color:var(--text3);width:40px;text-align:right">depth ${depth}</span>
+      </div>`;
+    });
+    if(fwdList.length>12) html += `<div style="font-size:.65rem;color:var(--text3)">…and ${fwdList.length-12} more</div>`;
+  }
+
+  if(revList.length){
+    html += `<div style="font-weight:500;font-size:.78rem;margin:.6rem 0 .2rem">↑ Upstream (callers that would break)</div>`;
+    revList.slice(0,8).forEach(([f, depth])=>{
+      html += `<div class="whatif-impact">
+        <span class="tbl-fn" style="width:140px;flex-shrink:0">${esc(f)}</span>
+        <div style="flex:1;background:var(--bg3);border-radius:3px;height:6px"><div class="impact-bar" style="width:${Math.max(100-depth*15,8)}%;background:var(--red)"></div></div>
+        <span style="font-size:.6rem;color:var(--text3);width:40px;text-align:right">depth ${depth}</span>
+      </div>`;
+    });
+  }
+
+  result.innerHTML = html;
+}
+
+// ══ TIMELINE SLIDER ═════════════════════════════════════
+
+function initTimelineSlider(){
+  const tl = A.timeline||[];
+  if(tl.length < 2) return;
+  const sect = document.getElementById('body-boot');
+  if(!sect) return;
+
+  // Inject slider at top of boot section
+  const existing = sect.innerHTML;
+  const sliderHtml = `<div class="tl-slider-wrap">
+    <span class="tl-slider-label" id="tl-label">All steps</span>
+    <input type="range" class="tl-slider" id="tl-slider" min="0" max="${tl.length}" value="${tl.length}" oninput="filterTimeline(this.value)">
+  </div>`;
+  sect.innerHTML = sliderHtml + existing;
+}
+
+function filterTimeline(val){
+  const tl = A.timeline||[];
+  val = parseInt(val);
+  const label = document.getElementById('tl-label');
+  label.textContent = val >= tl.length ? 'All steps' : `Step ${val}`;
+
+  document.querySelectorAll('#body-boot .tl-step').forEach((step, i)=>{
+    if(val >= tl.length){
+      step.classList.remove('dimmed','active');
+    } else {
+      step.classList.toggle('dimmed', i > val);
+      step.classList.toggle('active', i === val);
+    }
+  });
+}
+
+// ══ ADD data-fn ATTRS TO SVG NODES ══════════════════════
+
+function addDataFnToSvgNodes(){
+  // The SVG generators create nodes with text content = function name
+  // We need to add data-fn attributes for hover/click interactivity
+  document.querySelectorAll('.diagram-pz svg g').forEach(g=>{
+    if(g.dataset.fn) return; // already has it
+    const texts = g.querySelectorAll('text');
+    if(!texts.length) return;
+    const mainText = texts[0]?.textContent?.replace('…','');
+    if(mainText && nmap[mainText]){
+      g.setAttribute('data-fn', mainText);
+    }
+  });
+}
+
+// ══ BOOT ════════════════════════════════════════════════
+
+function collapseAll(){
+  document.querySelectorAll('.card.open').forEach(c=>c.classList.remove('open'));
+}
+function expandAll(){
+  document.querySelectorAll('.card').forEach(c=>c.classList.add('open'));
+}
+
+// Boot
+renderAll();
+
+// Add footer
+const footerHtml = `<div style="padding:2rem 2.5rem 3rem;text-align:center;font-size:.65rem;color:var(--text3);border-top:1px solid var(--border)">
+  Generated by <b>Callgraph Studio</b> v1.6.0 · ${new Date(M.generated_at).toLocaleString()} · ${M.fn_count} functions · ${M.module_count} modules
+</div>`;
+document.getElementById('content').insertAdjacentHTML('beforeend', footerHtml);
+
+// Post-render interactive init
+setTimeout(()=>{
+  pzInit();
+  addDataFnToSvgNodes();
+  makeSvgNodesInteractive();
+  initTimelineSlider();
+}, 100);
+</script>
+</body>
+</html>

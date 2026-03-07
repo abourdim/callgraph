@@ -1,6 +1,6 @@
-# Callgraph Studio — Roadmap after v1.3.0
+# Callgraph Studio — Roadmap after v1.6.0
 
-## Completed in v1.3.0
+## Completed in v1.6.0
 
 - ✓ Stack depth DFS performance fix (memoized DP)
 - ✓ Diff mode (snapshot + compare)

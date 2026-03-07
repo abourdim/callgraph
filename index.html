@@ -16,6 +16,31 @@
   --purple:#a78bfa;--cyan:#06b6d4;
   --sidebar:260px;
 }
+/* ── Themes ──────────────────────────────── */
+.theme-light{
+  --bg:#f5f5f0;--bg2:#ffffff;--bg3:#eaeae2;--bg4:#ddddd5;
+  --border:#c8c8bc;--border2:#b8b8ac;
+  --text:#1a1a18;--text2:#555550;--text3:#888880;
+  --accent:#2563eb;--gold:#b8860b;
+  --green:#16a34a;--red:#dc2626;--yellow:#d97706;
+  --purple:#7c3aed;--cyan:#0891b2;
+}
+.theme-hc{
+  --bg:#000000;--bg2:#0a0a0a;--bg3:#141414;--bg4:#1e1e1e;
+  --border:#444444;--border2:#666666;
+  --text:#ffffff;--text2:#cccccc;--text3:#888888;
+  --accent:#00aaff;--gold:#ffcc00;
+  --green:#00ff66;--red:#ff3333;--yellow:#ffaa00;
+  --purple:#cc88ff;--cyan:#00eeff;
+}
+.theme-alhambra{
+  --bg:#0c0a06;--bg2:#141008;--bg3:#1c1810;--bg4:#24201a;
+  --border:#3a3020;--border2:#4a3e2c;
+  --text:#f0e8d0;--text2:#b8a880;--text3:#6a5a40;
+  --accent:#d4a843;--gold:#d4a843;
+  --green:#8fbc6a;--red:#c05040;--yellow:#d4a843;
+  --purple:#a08090;--cyan:#70a0a0;
+}
 html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:13px;background:var(--bg);color:var(--text)}
 
 /* ══ LAUNCH ══════════════════════════════════════════════════ */
@@ -433,6 +458,15 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
 .ana-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;color:var(--text2);padding:.28rem .6rem;font-size:.65rem;cursor:pointer;transition:all .15s}
 .ana-btn:hover{border-color:var(--accent);color:var(--accent)}
 .ana-btn.active{background:var(--accent)22;border-color:var(--accent);color:var(--accent)}
+
+/* settings */
+.settings-toggle{background:none;border:1px solid var(--border);border-radius:5px;color:var(--text3);padding:.2rem .5rem;font-size:.6rem;cursor:pointer;width:100%}
+.settings-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.settings-body{display:none;margin-top:.3rem}
+.settings-body.on{display:block}
+.settings-textarea{width:100%;min-height:50px;padding:.3rem .5rem;border:1px solid var(--border);border-radius:5px;background:var(--bg3);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.65rem;resize:vertical;outline:none}
+.settings-textarea:focus{border-color:var(--accent)}
+.settings-hint{font-size:.55rem;color:var(--text3);margin-top:.2rem}
 .hm-legend{display:flex;align-items:center;gap:.4rem;font-size:.6rem;color:var(--text3);margin-top:.4rem}
 .hm-grad{width:60px;height:6px;border-radius:3px;background:linear-gradient(90deg,#111e30,#22c55e,#f59e0b,#ef4444)}
 /* path finder */
@@ -482,6 +516,10 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
 .src-badge.dead{background:#6b85a822;color:#6b85a8;text-decoration:line-through}
 .src-badge.periph{background:#d4a84322;color:#d4a843}
 .src-badge.isr{background:#a78bfa22;color:#a78bfa}
+/* syntax highlight */
+.sh-kw{color:#c678dd} .sh-type{color:#e5c07b} .sh-str{color:#98c379}
+.sh-num{color:#d19a66} .sh-cmt{color:var(--text3);font-style:italic}
+.sh-pp{color:#e06c75} .sh-fn{color:#61afef}
 </style>
 </head>
 <body>
@@ -492,7 +530,7 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
     <span class="bism-ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</span>
     <div class="bism-rule"><span class="bism-gem">✦</span></div>
     <div class="bism-title">Callgraph Studio</div>
-    <div class="bism-sub">C · Interactive Call Graph Explorer&nbsp;v1.3.0</div>
+    <div class="bism-sub">C · Interactive Call Graph Explorer&nbsp;v1.6.0</div>
   </div>
   <div id="restore-banner" style="display:none;align-items:center;gap:.7rem;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:.65rem 1rem;margin-bottom:.8rem;font-size:.78rem;">
     <span style="color:var(--text3)">↩</span>
@@ -572,6 +610,12 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
       <div class="sb-sect">
         <span class="sb-lbl">Style</span>
         <div class="spills" id="spills"></div>
+        <div style="display:flex;gap:3px;margin-top:.35rem">
+          <button class="sp active" data-theme="" onclick="setTheme('')" style="font-size:.55rem;padding:.15rem .35rem" title="Dark (default)">Dark</button>
+          <button class="sp" data-theme="theme-light" onclick="setTheme('theme-light')" style="font-size:.55rem;padding:.15rem .35rem" title="Light">Light</button>
+          <button class="sp" data-theme="theme-hc" onclick="setTheme('theme-hc')" style="font-size:.55rem;padding:.15rem .35rem" title="High contrast">Hi-Con</button>
+          <button class="sp" data-theme="theme-alhambra" onclick="setTheme('theme-alhambra')" style="font-size:.55rem;padding:.15rem .35rem" title="Alhambra gold">Gold</button>
+        </div>
       </div>
 
       <!-- Trace -->
@@ -613,8 +657,21 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
           <button class="ana-btn" id="ana-cycle-btn"  onclick="runCycleDetect()">↻ Cycles</button>
           <button class="ana-btn" id="ana-stack-btn"  onclick="runStackDepth()">⬆ Stack depth</button>
           <button class="ana-btn" id="ana-diff-btn"   onclick="runDiff()">⚖ Diff</button>
+          <button class="ana-btn" id="ana-coupling-btn" onclick="runCoupling()">🔗 Coupling</button>
         </div>
         <div id="analysis-result"></div>
+      </div>
+
+      <!-- Settings -->
+      <div class="sb-sect" id="settings-sect" style="display:none">
+        <button class="settings-toggle" onclick="toggleSettings()">⚙ Entry Point Patterns</button>
+        <div class="settings-body" id="settings-body">
+          <textarea class="settings-textarea" id="entry-patterns" rows="4"
+            placeholder="One regex per line…"
+            onchange="saveEntryPatterns()"></textarea>
+          <div class="settings-hint">Regex patterns to identify entry point functions. Used by dead code, stack depth, and auto-trace. One per line.</div>
+          <button class="ana-btn" style="width:100%;margin-top:.3rem" onclick="resetEntryPatterns()">Reset to defaults</button>
+        </div>
       </div>
 
       <!-- Function list -->
@@ -651,6 +708,7 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
         <button class="gbtn" id="btn-fwd"     onclick="histFwd()"    title="Forward (Alt+→)" disabled style="opacity:.35">▶</button>
         <button class="gbtn" onclick="fitGraph()" title="Fit (F)">Fit</button>
         <button class="gbtn" id="btn-dir"     onclick="toggleDir()"  title="H/V layout">⇆</button>
+        <button class="gbtn" id="btn-force"   onclick="toggleForce()" title="Force-directed layout">⚡</button>
         <button class="gbtn" onclick="zoom(1.3)">+</button>
         <span id="zoom-pct">100%</span>
         <button class="gbtn" onclick="zoom(0.77)">−</button>
@@ -659,6 +717,10 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
         <button class="gbtn"                  onclick="exportPNG()"  title="Save as PNG">PNG</button>
         <button class="gbtn"                  onclick="exportGraphJSON()" title="Export call graph as JSON">JSON</button>
         <button class="gbtn"                  onclick="exportGraphCSV()"  title="Export edges as CSV">CSV</button>
+        <button class="gbtn"                  onclick="exportGraphML()"   title="Export as GraphML (yEd)">GML</button>
+        <button class="gbtn"                  onclick="exportDOT()"      title="Export as DOT (Graphviz)">DOT</button>
+        <button class="gbtn" id="btn-report"  onclick="generateReport()" title="Generate handover report" style="color:#f59e0b">📋 Report</button>
+        <button class="gbtn" id="btn-watch"   onclick="toggleWatch()"    title="Watch for file changes">👁 Watch</button>
         <div class="gbar-sep"></div>
         <button class="gbtn" id="btn-globals" onclick="openGlobals()" title="Global variable dependencies" style="color:#22c55e">Globals</button>
         <button class="gbtn" id="btn-races"   onclick="openRaces()"   title="Race condition candidates"   style="color:#ef6548">Races</button>
@@ -806,6 +868,7 @@ let fbCur='/', fbSel='/';
 let acIdx = -1;
 let collapsedNodes = new Set();  // nodes whose subtrees are hidden
 let traceDir = 'both';  // 'both' | 'down' | 'up'
+let useForce = false;   // force-directed layout toggle
 
 // Safe string for use inside inline onclick='...' attributes
 function esc(s){ return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
@@ -867,6 +930,22 @@ function buildStylePills(){
   });
 }
 
+function setTheme(cls){
+  document.documentElement.className = cls;
+  document.querySelectorAll('[data-theme]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.theme===cls);
+  });
+  try{ localStorage.setItem('cg_theme', cls); }catch(e){}
+}
+
+// Restore saved theme on load
+(function(){
+  try{
+    const t = localStorage.getItem('cg_theme');
+    if(t){ document.documentElement.className = t; }
+  }catch(e){}
+})();
+
 // ══ INDEX ══════════════════════════════════════════════════════
 async function doIndex(){
   const src = document.getElementById('src').value.trim();
@@ -927,9 +1006,11 @@ function enterApp(src){
   document.getElementById('btn-races').style.display   = (G.races&&G.races.length) ? '' : 'none';
   document.getElementById('btn-rtos').style.display    = (G.rtos&&Object.keys(G.rtos.tasks||{}).length) ? '' : 'none';
   document.getElementById('btn-periph').style.display  = (G.peripherals&&Object.keys(G.peripherals).length) ? '' : 'none';
+  document.getElementById('settings-sect').style.display = '';
+  loadEntryPatternsUI();
   buildFnList();
   // Auto-trace main or first entry point on startup
-  const autoTarget = G.nodes.find(n=>n.id==='main') || G.nodes.find(n=>n.is_entry && n.type==='project');
+  const autoTarget = G.nodes.find(n=>n.id==='main') || G.nodes.find(n=>isEntryPoint(n) && n.type==='project');
   if(autoTarget && G.nodes.length > 20){
     depth=3; document.getElementById('depth').value=3; document.getElementById('dv').textContent='3';
     traceFunction(autoTarget.id, true);
@@ -992,8 +1073,9 @@ function newIndex(fresh=false){
   if(fresh) document.getElementById('src').value='';
   G=null; tracedFn=null; focusedFn=null;
   multiTraceMode=false; multiTraceA=null; multiTraceB=null;
-  traceDir='both';
+  traceDir='both'; useForce=false;
   document.querySelectorAll('.tdir-pill').forEach(p=>p.classList.toggle('active',p.dataset.dir==='both'));
+  document.getElementById('btn-force').classList.remove('active');
   traceHistory=[]; traceHistIdx=-1;
   window._deadFns=null; window._impactFns=null; window._heatScores=null; window._foundPaths=null;
   clearCanvas(); closeSource(); closeBookmarks();
@@ -1017,6 +1099,7 @@ function setMode(m){
   document.getElementById('trace-sect').style.display=m==='fn'?'':'none';
   document.getElementById('multi-trace-sect').style.display=m==='fn'?'':'none';
   document.getElementById('analysis-sect').style.display=m==='fn'?'':'none';
+  document.getElementById('settings-sect').style.display=m==='fn'?'':'none';
   document.getElementById('mod-opts').style.display=m==='mod'?'block':'none';
   tracedFn=null;
   document.getElementById('btn-reset-trace').style.display='none';
@@ -1408,6 +1491,78 @@ function layoutGraph(visNodes, visEdges, dir='LR', roles={}){
   return pos;
 }
 
+// ── Force-directed layout ────────────────────────────────────
+function forceLayout(visNodes, visEdges){
+  const nodeArr = [...visNodes];
+  if(!nodeArr.length) return {};
+  const NW=150, NH=46, PAD=60;
+
+  // Initialize positions in a circle
+  const pos = {};
+  const cx = 400, cy = 300, radius = Math.min(300, nodeArr.length * 12);
+  nodeArr.forEach((n, i)=>{
+    const angle = (2*Math.PI*i)/nodeArr.length;
+    pos[n] = { x: cx + radius*Math.cos(angle), y: cy + radius*Math.sin(angle) };
+  });
+
+  // Build adjacency for quick lookup
+  const adj = new Set();
+  visEdges.forEach(e=>adj.add(e.from+'→'+e.to));
+
+  // Simulation
+  const ITERS = 80;
+  const REPULSION = 8000;
+  const ATTRACTION = 0.008;
+  const DAMPING = 0.92;
+  const vel = {};
+  nodeArr.forEach(n=>vel[n]={vx:0,vy:0});
+
+  for(let iter=0; iter<ITERS; iter++){
+    // Repulsion (all pairs)
+    for(let i=0; i<nodeArr.length; i++){
+      for(let j=i+1; j<nodeArr.length; j++){
+        const a=nodeArr[i], b=nodeArr[j];
+        let dx=pos[b].x-pos[a].x, dy=pos[b].y-pos[a].y;
+        const dist2=dx*dx+dy*dy+1;
+        const dist=Math.sqrt(dist2);
+        const force=REPULSION/dist2;
+        const fx=force*dx/dist, fy=force*dy/dist;
+        vel[a].vx-=fx; vel[a].vy-=fy;
+        vel[b].vx+=fx; vel[b].vy+=fy;
+      }
+    }
+    // Attraction (edges)
+    visEdges.forEach(e=>{
+      const a=e.from, b=e.to;
+      if(!pos[a]||!pos[b]) return;
+      const dx=pos[b].x-pos[a].x, dy=pos[b].y-pos[a].y;
+      const dist=Math.sqrt(dx*dx+dy*dy)+1;
+      const force=ATTRACTION*dist;
+      const fx=force*dx/dist, fy=force*dy/dist;
+      vel[a].vx+=fx; vel[a].vy+=fy;
+      vel[b].vx-=fx; vel[b].vy-=fy;
+    });
+    // Apply + damp
+    nodeArr.forEach(n=>{
+      pos[n].x+=vel[n].vx; pos[n].y+=vel[n].vy;
+      vel[n].vx*=DAMPING; vel[n].vy*=DAMPING;
+    });
+  }
+
+  // Normalize: shift so min is at PAD
+  const xs=nodeArr.map(n=>pos[n].x), ys=nodeArr.map(n=>pos[n].y);
+  const minX=Math.min(...xs), minY=Math.min(...ys);
+  nodeArr.forEach(n=>{ pos[n].x-=minX-PAD; pos[n].y-=minY-PAD; });
+
+  return pos;
+}
+
+function toggleForce(){
+  useForce=!useForce;
+  document.getElementById('btn-force').classList.toggle('active',useForce);
+  renderGraph();
+}
+
 // ── SVG render ────────────────────────────────────────────────
 function renderFnGraph(){
   const {visNodes, visEdges, roles} = buildVisibleGraph();
@@ -1426,7 +1581,7 @@ function renderFnGraph(){
     hideLoading(); return;
   }
 
-  const pos = layoutGraph(visNodes, visEdges, layoutDir, roles);
+  const pos = useForce ? forceLayout(visNodes, visEdges) : layoutGraph(visNodes, visEdges, layoutDir, roles);
   const col = NODE_COLORS[selStyle]||NODE_COLORS.default;
 
   // Module color palette
@@ -2401,7 +2556,7 @@ function clearMultiTrace(){
 // ══════════════════════════════════════════════════════════════
 
 function anaSetActive(id){
-  ['ana-dead-btn','ana-impact-btn','ana-heat-btn','ana-path-btn','ana-cycle-btn','ana-stack-btn','ana-diff-btn']
+  ['ana-dead-btn','ana-impact-btn','ana-heat-btn','ana-path-btn','ana-cycle-btn','ana-stack-btn','ana-diff-btn','ana-coupling-btn']
     .forEach(b=>{ const el=document.getElementById(b); if(el) el.classList.remove('active'); });
   if(id){ const el=document.getElementById(id); if(el) el.classList.add('active'); }
 }
@@ -2417,13 +2572,10 @@ function runDeadCode(){
   const called = new Set();
   Object.values(G.edges).forEach(cs=>cs.forEach(c=>called.add(c)));
 
-  // Entry points: no callers in project, or known patterns
-  const entryPatterns = /^(main|ISR_|irq_|interrupt_|handler_|_init|init_|startup)/i;
-
+  // Entry points: no callers in project, or user-configured patterns
   const dead = G.nodes.filter(n=>{
     if(n.type!=='project') return false;
-    if(n.is_isr || n.is_entry) return false;      // analyzer-detected entry points
-    if(entryPatterns.test(n.id)) return false;     // pattern-based entry points
+    if(isEntryPoint(n)) return false;
     const callerList = G.callers[n.id]||[];
     const hasProjectCaller = callerList.some(c=>{
       const cm = G.nodes.find(x=>x.id===c);
@@ -2599,10 +2751,9 @@ function runStackDepth(){
   if(!G){ toast('Index a project first','error'); return; }
   anaSetActive('ana-stack-btn');
 
-  // Find entry points
-  const entryPatterns=/^(main|ISR_|irq_|interrupt_|handler_|_init|init_|startup)/i;
+  // Find entry points using configurable patterns
   const entries=G.nodes.filter(n=>
-    n.type==='project' && (n.is_isr||n.is_entry||entryPatterns.test(n.id))
+    n.type==='project' && isEntryPoint(n)
   );
 
   if(!entries.length){
@@ -2931,45 +3082,76 @@ function runPathFind(){
 
   const MAX_PATHS=Math.min(200,parseInt(document.getElementById('path-max-paths')?.value)||20);
   const MAX_DEPTH=Math.min(50,parseInt(document.getElementById('path-max-depth')?.value)||12);
-  const paths=[];
 
-  function dfs(node, target, path, visited){
-    if(paths.length>=MAX_PATHS) return;
-    if(node===target){ paths.push([...path]); return; }
-    if(path.length>MAX_DEPTH) return;
-    (G.edges[node]||[]).forEach(next=>{
-      if(!visited.has(next)){
-        visited.add(next);
-        path.push(next);
-        dfs(next,target,path,visited);
-        path.pop();
-        visited.delete(next);
+  // Show progress
+  const resultsEl=document.getElementById('path-results');
+  resultsEl.innerHTML='<div style="font-size:.65rem;color:var(--accent);padding:.3rem 0">⏳ Searching… <button class="ana-btn" style="font-size:.55rem;padding:.1rem .3rem" onclick="cancelPathFind()">Cancel</button></div>';
+
+  // Run in Web Worker to avoid blocking UI
+  const workerCode = `
+    self.onmessage = function(e){
+      const {edges, from, to, maxPaths, maxDepth} = e.data;
+      const paths = [];
+      function dfs(node, target, path, visited){
+        if(paths.length >= maxPaths) return;
+        if(node === target){ paths.push([...path]); return; }
+        if(path.length > maxDepth) return;
+        (edges[node]||[]).forEach(next=>{
+          if(!visited.has(next)){
+            visited.add(next);
+            path.push(next);
+            dfs(next, target, path, visited);
+            path.pop();
+            visited.delete(next);
+          }
+        });
       }
-    });
+      dfs(from, to, [from], new Set([from]));
+      self.postMessage({paths});
+    };
+  `;
+  const blob = new Blob([workerCode], {type:'application/javascript'});
+  const worker = new Worker(URL.createObjectURL(blob));
+  window._pathWorker = worker;
+
+  worker.onmessage = function(e){
+    window._pathWorker = null;
+    URL.revokeObjectURL(blob);
+    const paths = e.data.paths;
+    if(!paths.length){
+      resultsEl.innerHTML=`<div style="font-size:.65rem;color:var(--text3);padding:.3rem 0">No path found (max depth ${MAX_DEPTH})</div>`;
+      return;
+    }
+    paths.sort((a,b)=>a.length-b.length);
+    window._foundPaths=paths;
+    const html=paths.map((p,i)=>`
+      <div class="path-item" onclick="showPathInGraph(${i})" title="${p.join(' → ')}">
+        <div class="pi-hops">${p.length-1} hops</div>
+        <div>${p.map((fn,j)=>
+          `<span class="path-fn" title="${fn}">${fn.length>16?fn.slice(0,14)+'…':fn}</span>`+
+          (j<p.length-1?'<span class="path-sep">→</span>':'')
+        ).join('')}</div>
+      </div>`).join('');
+    resultsEl.innerHTML=
+      `<div style="font-size:.6rem;color:var(--text3);margin-bottom:.3rem">${paths.length} path${paths.length>1?'s':''} found (shortest first) · click to view</div>`+
+      `<div class="path-list">${html}</div>`;
+  };
+
+  worker.onerror = function(e){
+    window._pathWorker = null;
+    resultsEl.innerHTML=`<div style="font-size:.65rem;color:var(--red);padding:.3rem 0">Worker error: ${e.message||'unknown'}</div>`;
+  };
+
+  worker.postMessage({edges:G.edges, from, to, maxPaths:MAX_PATHS, maxDepth:MAX_DEPTH});
+}
+
+function cancelPathFind(){
+  if(window._pathWorker){
+    window._pathWorker.terminate();
+    window._pathWorker = null;
+    document.getElementById('path-results').innerHTML='<div style="font-size:.65rem;color:var(--text3);padding:.3rem 0">Cancelled.</div>';
+    toast('Path search cancelled');
   }
-  dfs(from,to,[from],new Set([from]));
-
-  if(!paths.length){
-    document.getElementById('path-results').innerHTML=
-      `<div style="font-size:.65rem;color:var(--text3);padding:.3rem 0">No path found (max depth ${MAX_DEPTH})</div>`;
-    return;
-  }
-
-  paths.sort((a,b)=>a.length-b.length);
-  window._foundPaths=paths;
-
-  const html=paths.map((p,i)=>`
-    <div class="path-item" onclick="showPathInGraph(${i})" title="${p.join(' → ')}">
-      <div class="pi-hops">${p.length-1} hops</div>
-      <div>${p.map((fn,j)=>
-        `<span class="path-fn" title="${fn}">${fn.length>16?fn.slice(0,14)+'…':fn}</span>`+
-        (j<p.length-1?'<span class="path-sep">→</span>':'')
-      ).join('')}</div>
-    </div>`).join('');
-
-  document.getElementById('path-results').innerHTML=
-    `<div style="font-size:.6rem;color:var(--text3);margin-bottom:.3rem">${paths.length} path${paths.length>1?'s':''} found (shortest first) · click to view</div>`+
-    `<div class="path-list">${html}</div>`;
 }
 
 function showPathInGraph(idx){
@@ -3125,6 +3307,31 @@ function exportBookmarks(){
 loadBookmarks();
 
 // ══ SOURCE ANNOTATION VIEW ════════════════════════════════════
+const _C_KW = /\b(if|else|for|while|do|switch|case|default|break|continue|return|goto|sizeof|typedef|struct|union|enum)\b/g;
+const _C_TYPE = /\b(void|int|char|short|long|float|double|unsigned|signed|const|static|extern|volatile|inline|register|uint8_t|uint16_t|uint32_t|uint64_t|int8_t|int16_t|int32_t|int64_t|size_t|bool|NULL|true|false)\b/g;
+const _C_NUM = /\b(0x[0-9a-fA-F]+|0b[01]+|\d+[UuLlFf]*)\b/g;
+const _C_PP = /^(\s*#\s*\w+.*)/;
+const _C_CMT_LINE = /(\/\/.*)/;
+const _C_STR = /(&quot;[^&]*?&quot;|'[^']*?')/g;
+
+function highlightC(line){
+  // Preprocessor (whole line)
+  if(_C_PP.test(line)) return line.replace(_C_PP, '<span class="sh-pp">$1</span>');
+  // Line comment
+  const cmtIdx = line.indexOf('//');
+  let code = line, cmt = '';
+  if(cmtIdx >= 0){ code = line.slice(0, cmtIdx); cmt = '<span class="sh-cmt">' + line.slice(cmtIdx) + '</span>'; }
+  // Strings first (protect from other replacements)
+  let tokens = [];
+  code = code.replace(_C_STR, (m)=>{ const id = '§S'+tokens.length+'§'; tokens.push('<span class="sh-str">'+m+'</span>'); return id; });
+  // Keywords and types
+  code = code.replace(_C_KW, '<span class="sh-kw">$1</span>');
+  code = code.replace(_C_TYPE, '<span class="sh-type">$1</span>');
+  code = code.replace(_C_NUM, '<span class="sh-num">$1</span>');
+  // Restore strings
+  tokens.forEach((t,i)=>{ code = code.replace('§S'+i+'§', t); });
+  return code + cmt;
+}
 async function openSource(filePath){
   if(!G||!filePath) return;
   const panel = document.getElementById('source-panel');
@@ -3162,6 +3369,22 @@ async function openSource(filePath){
     const raceFns = new Set();
     (G.races||[]).forEach(r=>{ raceFns.add(r.task_fn); r.isr_writers.forEach(w=>raceFns.add(w)); });
 
+    // Diff markers: detect new/changed functions vs baseline
+    const diffSnap = loadDiffSnapshot();
+    const diffAdded = new Set();
+    const diffChanged = new Set();
+    if(diffSnap){
+      const prevIds = diffSnap.nodeIds || new Set();
+      G.nodes.forEach(n=>{
+        if(!prevIds.has(n.id)) diffAdded.add(n.id);
+        else {
+          const curE = (G.edges[n.id]||[]).sort().join(',');
+          const prevE = (diffSnap.edges[n.id]||[]).sort().join(',');
+          if(curE !== prevE) diffChanged.add(n.id);
+        }
+      });
+    }
+
     let html = '';
     d.lines.forEach((line, i)=>{
       const lineNum = i + 1;
@@ -3176,9 +3399,12 @@ async function openSource(filePath){
         if(deadFns.has(fn.id)) badges += `<span class="src-badge dead" title="Dead code">☠dead</span>`;
         if(raceFns.has(fn.id)) badges += `<span class="src-badge race" title="Race candidate">⚠race</span>`;
         if((fn.peripherals||[]).length) badges += `<span class="src-badge periph" title="Peripheral access">◈periph</span>`;
+        if(diffAdded.has(fn.id)) badges += `<span class="src-badge" style="background:#22c55e22;color:#22c55e" title="New function (not in baseline)">+new</span>`;
+        if(diffChanged.has(fn.id)) badges += `<span class="src-badge" style="background:#f59e0b22;color:#f59e0b" title="Changed edges since baseline">~changed</span>`;
       }
-      // Escape HTML
-      const escaped = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // Escape HTML then apply syntax highlighting
+      let escaped = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      escaped = highlightC(escaped);
       html += `<div class="src-line${cls}" ${fn?`data-fn="${esc(fn.id)}" onclick="traceFunction('${esc(fn.id)}')" style="cursor:pointer"`:''}>` +
         `<span class="src-gutter">${lineNum}</span>` +
         `<span class="src-code">${escaped}${badges}</span></div>`;
@@ -3319,6 +3545,111 @@ function highlightDiff(added, removed, changed){
 }
 
 
+// ══ COUPLING ANALYSIS ═════════════════════════════════════════
+function runCoupling(){
+  if(!G){ toast('Index a project first','error'); return; }
+  anaSetActive('ana-coupling-btn');
+
+  const mods = (G.mods||[]).filter(m=>m!=='external'&&m!=='.');
+  if(mods.length < 2){
+    anaResult(`<div class="analysis-panel">
+      <div class="analysis-title">🔗 Coupling <button class="analysis-close" onclick="anaResult('');anaSetActive(null)">✕</button></div>
+      <div class="ana-row"><span class="ana-val">Need ≥2 modules for coupling analysis</span></div>
+    </div>`);
+    return;
+  }
+
+  const nmap = {};
+  G.nodes.forEach(n=>nmap[n.id]=n);
+
+  // Count functions per module
+  const modFnCount = {};
+  mods.forEach(m=>modFnCount[m]=0);
+  G.nodes.forEach(n=>{
+    const m = n.mod||n.module;
+    if(modFnCount[m]!==undefined) modFnCount[m]++;
+  });
+
+  // Compute coupling for each module pair
+  const pairs = [];
+  const modEdges = G.mod_edges||{};
+  const seen = new Set();
+  for(const key of Object.keys(modEdges)){
+    const [a,b] = key.split('→');
+    if(!a||!b||a===b||!mods.includes(a)||!mods.includes(b)) continue;
+    const pairKey = [a,b].sort().join('|');
+    if(seen.has(pairKey)) continue;
+    seen.add(pairKey);
+
+    const edgesAB = modEdges[`${a}→${b}`]||0;
+    const edgesBA = modEdges[`${b}→${a}`]||0;
+    const totalEdges = edgesAB + edgesBA;
+    const maxEdges = modFnCount[a] * modFnCount[b];
+    const score = maxEdges > 0 ? totalEdges / maxEdges : 0;
+
+    pairs.push({
+      a, b, edgesAB, edgesBA, totalEdges,
+      score: Math.round(score * 1000) / 10,
+      fnsA: modFnCount[a], fnsB: modFnCount[b],
+    });
+  }
+
+  pairs.sort((x,y)=>y.score-x.score);
+  const maxScore = pairs.length ? pairs[0].score : 0;
+
+  let html = `<div class="analysis-panel">
+    <div class="analysis-title">🔗 Module Coupling <button class="analysis-close" onclick="anaResult('');anaSetActive(null)">✕</button></div>
+    <div class="ana-row"><span class="ana-key">Module pairs</span><span class="ana-val">${pairs.length}</span></div>
+    <div style="font-size:.6rem;color:var(--text3);margin:.2rem 0 .5rem">Score = edges / (fns_A × fns_B) · Higher = tighter coupling</div>`;
+
+  if(!pairs.length){
+    html += '<div class="ana-row"><span class="ana-val">No cross-module dependencies</span></div>';
+  } else {
+    pairs.slice(0,15).forEach(p=>{
+      const barW = maxScore>0 ? Math.round((p.score/maxScore)*100) : 0;
+      const color = p.score>5?'#ef6548':p.score>2?'#f59e0b':'#22c55e';
+      html += `<div class="dead-item">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.15rem">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--text)">${p.a} ↔ ${p.b}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:600;color:${color}">${p.score}%</span>
+        </div>
+        <div style="background:var(--bg);border-radius:3px;height:5px;margin-bottom:.15rem">
+          <div style="width:${barW}%;height:100%;border-radius:3px;background:${color};transition:width .3s"></div>
+        </div>
+        <div style="font-size:.58rem;color:var(--text3)">${p.a}(${p.fnsA}) → ${p.b}: ${p.edgesAB} edges · ${p.b} → ${p.a}: ${p.edgesBA} edges · total: ${p.totalEdges}</div>
+      </div>`;
+    });
+
+    // Highlight button
+    const top3 = pairs.slice(0,3).map(p=>[p.a,p.b]);
+    html += `<button class="ana-btn" style="width:100%;margin-top:.5rem" onclick='highlightCoupledModules(${JSON.stringify(top3)})'>Highlight top 3 pairs in graph</button>`;
+  }
+
+  html += '</div>';
+  anaResult(html);
+}
+
+function highlightCoupledModules(pairs){
+  const svg = document.getElementById('canvas').querySelector('svg');
+  if(!svg){toast('Render graph first','error');return;}
+  const highlightMods = new Set();
+  pairs.forEach(([a,b])=>{highlightMods.add(a);highlightMods.add(b);});
+  svg.querySelectorAll('g[data-fn]').forEach(g=>{
+    const fn = g.dataset.fn;
+    const n = G.nodes.find(x=>x.id===fn);
+    const mod = n?(n.mod||n.module):'';
+    const r = g.querySelector('rect');
+    if(!r) return;
+    if(highlightMods.has(mod)){
+      r.setAttribute('stroke','#f59e0b');r.setAttribute('stroke-width','2.5');
+      r.style.filter='drop-shadow(0 0 5px #f59e0b88)';r.style.opacity='1';
+    } else {
+      r.style.opacity='0.15';r.style.filter='none';
+    }
+  });
+  toast(`Highlighted ${pairs.length} coupled module pairs`,'ok');
+}
+
 // ══ GLOBALS PANEL ═════════════════════════════════════════════
 function highlightGlobalTouchers(varName){
   const touchers=new Set();
@@ -3338,6 +3669,11 @@ function highlightGlobalTouchers(varName){
   toast(`${touchers.size} functions touch '${varName}' — amber`,'ok');
 }
 // ══ CONTEXT MENU ══════════════════════════════════════════════
+function toggleCollapse(fn){
+  if(collapsedNodes.has(fn)) collapsedNodes.delete(fn);
+  else collapsedNodes.add(fn);
+  renderGraph();
+}
 function showCtxMenu(e, fn){
   e.preventDefault(); e.stopPropagation();
   const m=document.getElementById('ctx-menu');
@@ -3702,6 +4038,149 @@ function openRtos(){
 
   document.getElementById('rtos-body').innerHTML = html;
   document.getElementById('rtos-panel').classList.add('open');
+
+  // Build ISR→Task interaction diagram
+  buildRtosInteractionDiagram(rtos, tasks, objs);
+}
+
+function buildRtosInteractionDiagram(rtos, tasks, objs){
+  // Find ISRs that call FromISR RTOS APIs
+  const nmap = {};
+  G.nodes.forEach(n=>nmap[n.id]=n);
+  const isrSenders = []; // {isr, target, kind}
+  G.nodes.forEach(n=>{
+    if(!n.is_isr) return;
+    (n.rtos||[]).forEach(rc=>{
+      if(rc.api && (rc.api.includes('FromISR') || rc.api.includes('fromISR'))){
+        isrSenders.push({isr:n.id, target:rc.target, kind:rc.kind, api:rc.api});
+      }
+    });
+  });
+
+  // Also check ISR→global→task data flow
+  const isrGlobalFlows = [];
+  const isrFns = G.nodes.filter(n=>n.is_isr);
+  const taskFns = tasks.map(([fn])=>fn);
+  isrFns.forEach(isr=>{
+    const writes = new Set(nmap[isr.id]?.writes||[]);
+    taskFns.forEach(tfn=>{
+      const reads = new Set(nmap[tfn]?.reads||[]);
+      const shared = [...writes].filter(v=>reads.has(v));
+      if(shared.length) isrGlobalFlows.push({isr:isr.id, task:tfn, vars:shared});
+    });
+  });
+
+  if(!isrSenders.length && !isrGlobalFlows.length) return;
+
+  // Draw SVG
+  const svgNS='http://www.w3.org/2000/svg';
+  const NW=110, NH=28, VGAP=10, COL_W=150, PAD=20;
+
+  // Collect unique ISRs, objects, tasks
+  const isrSet = new Set([...isrSenders.map(s=>s.isr), ...isrGlobalFlows.map(f=>f.isr)]);
+  const objSet = new Set(isrSenders.map(s=>s.target).filter(Boolean));
+  const taskSet = new Set([...isrGlobalFlows.map(f=>f.task)]);
+  // Also add tasks that receive from ISR-sent queues
+  isrSenders.forEach(s=>{
+    tasks.forEach(([fn, td])=>{
+      if((td.recvs_from||[]).includes(s.target)) taskSet.add(fn);
+    });
+  });
+
+  const isrs = [...isrSet].sort();
+  const objects = [...objSet].sort();
+  const tks = [...taskSet].sort();
+  const maxRows = Math.max(isrs.length, objects.length||1, tks.length, 1);
+  const W = COL_W*3 + PAD*2;
+  const H = PAD*2 + 20 + maxRows*(NH+VGAP);
+
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+  svg.style.cssText='display:block;margin:.5rem 0;max-width:100%';
+
+  // Headers
+  const cols = [{label:'ISRs',x:PAD,color:'#a78bfa'},{label:'RTOS Objects',x:PAD+COL_W,color:'#06b6d4'},{label:'Tasks',x:PAD+COL_W*2,color:'#4a8fff'}];
+  cols.forEach(c=>{
+    const t = document.createElementNS(svgNS,'text');
+    t.setAttribute('x',c.x+NW/2); t.setAttribute('y',14);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','9');
+    t.setAttribute('fill',c.color); t.setAttribute('font-family',"'JetBrains Mono',monospace");
+    t.setAttribute('font-weight','500'); t.textContent=c.label; svg.appendChild(t);
+  });
+
+  const pos = {};
+  function drawBox(x, y, label, color){
+    const r = document.createElementNS(svgNS,'rect');
+    r.setAttribute('x',x); r.setAttribute('y',y);
+    r.setAttribute('width',NW); r.setAttribute('height',NH);
+    r.setAttribute('rx',5); r.setAttribute('fill','var(--bg2)');
+    r.setAttribute('stroke',color); r.setAttribute('stroke-width','1.5');
+    svg.appendChild(r);
+    const t = document.createElementNS(svgNS,'text');
+    t.setAttribute('x',x+NW/2); t.setAttribute('y',y+NH/2);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+    t.setAttribute('font-size','8.5'); t.setAttribute('fill',color);
+    t.setAttribute('font-family',"'JetBrains Mono',monospace");
+    t.textContent = label.length>14?label.slice(0,12)+'…':label;
+    svg.appendChild(t);
+    return {x:x+NW/2, y:y+NH/2, right:x+NW, left:x};
+  }
+
+  isrs.forEach((fn,i)=>{ pos['isr:'+fn] = drawBox(PAD, PAD+20+i*(NH+VGAP), fn, '#a78bfa'); });
+  objects.forEach((fn,i)=>{ pos['obj:'+fn] = drawBox(PAD+COL_W, PAD+20+i*(NH+VGAP), fn, '#06b6d4'); });
+  tks.forEach((fn,i)=>{ pos['task:'+fn] = drawBox(PAD+COL_W*2, PAD+20+i*(NH+VGAP), fn, '#4a8fff'); });
+
+  // Arrows: ISR → object
+  isrSenders.forEach(s=>{
+    const p1 = pos['isr:'+s.isr], p2 = pos['obj:'+s.target];
+    if(p1 && p2){
+      const path = document.createElementNS(svgNS,'path');
+      const mx = (p1.right+p2.left)/2;
+      path.setAttribute('d',`M${p1.right},${p1.y} C${mx},${p1.y} ${mx},${p2.y} ${p2.left},${p2.y}`);
+      path.setAttribute('fill','none'); path.setAttribute('stroke','#a78bfa80');
+      path.setAttribute('stroke-width','1.5'); svg.appendChild(path);
+    }
+  });
+
+  // Arrows: object → task (if task receives from that object)
+  isrSenders.forEach(s=>{
+    tasks.forEach(([fn, td])=>{
+      if((td.recvs_from||[]).includes(s.target)){
+        const p1 = pos['obj:'+s.target], p2 = pos['task:'+fn];
+        if(p1 && p2){
+          const path = document.createElementNS(svgNS,'path');
+          const mx = (p1.right+p2.left)/2;
+          path.setAttribute('d',`M${p1.right},${p1.y} C${mx},${p1.y} ${mx},${p2.y} ${p2.left},${p2.y}`);
+          path.setAttribute('fill','none'); path.setAttribute('stroke','#06b6d480');
+          path.setAttribute('stroke-width','1.5'); svg.appendChild(path);
+        }
+      }
+    });
+  });
+
+  // Dashed arrows: ISR → task (via shared globals, no RTOS object)
+  isrGlobalFlows.forEach(f=>{
+    const p1 = pos['isr:'+f.isr], p2 = pos['task:'+f.task];
+    if(p1 && p2){
+      const path = document.createElementNS(svgNS,'path');
+      const mx = (p1.right + p2.left)/2;
+      path.setAttribute('d',`M${p1.right},${p1.y} C${mx},${p1.y} ${mx},${p2.y} ${p2.left},${p2.y}`);
+      path.setAttribute('fill','none'); path.setAttribute('stroke','#ef654860');
+      path.setAttribute('stroke-width','1.2'); path.setAttribute('stroke-dasharray','4,3');
+      svg.appendChild(path);
+    }
+  });
+
+  // Insert diagram at top of rtos-body
+  const body = document.getElementById('rtos-body');
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText='border:1px solid var(--border);border-radius:8px;padding:.4rem;margin-bottom:.5rem;overflow-x:auto;background:var(--bg)';
+  wrapper.appendChild(svg);
+  const legend = document.createElement('div');
+  legend.style.cssText='font-size:.55rem;color:var(--text3);display:flex;gap:.8rem;padding:.2rem .4rem';
+  legend.innerHTML='<span style="color:#a78bfa">━ ISR→Object</span><span style="color:#06b6d4">━ Object→Task</span><span style="color:#ef6548">╌ ISR→Task (shared global)</span>';
+  wrapper.appendChild(legend);
+  body.insertBefore(wrapper, body.firstChild);
 }
 
 function closeRtos(){
@@ -4100,6 +4579,205 @@ function exportGraphCSV(){
   toast('CSV exported ✓','ok');
 }
 
+function exportGraphML(){
+  if(!G){ toast('No graph to export','error'); return; }
+  const nodeMap={};
+  G.nodes.forEach(n=>nodeMap[n.id]=n);
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<graphml xmlns="http://graphml.graphstruct.org/graphml">\n';
+  xml += '  <key id="d0" for="node" attr.name="module" attr.type="string"/>\n';
+  xml += '  <key id="d1" for="node" attr.name="file" attr.type="string"/>\n';
+  xml += '  <key id="d2" for="node" attr.name="type" attr.type="string"/>\n';
+  xml += '  <key id="d3" for="node" attr.name="is_isr" attr.type="boolean"/>\n';
+  xml += '  <graph id="callgraph" edgedefault="directed">\n';
+  G.nodes.forEach(n=>{
+    xml += `    <node id="${esc(n.id)}">\n`;
+    xml += `      <data key="d0">${esc(n.mod||n.module||'')}</data>\n`;
+    xml += `      <data key="d1">${esc(n.file||'')}</data>\n`;
+    xml += `      <data key="d2">${esc(n.type||'')}</data>\n`;
+    xml += `      <data key="d3">${n.is_isr||false}</data>\n`;
+    xml += '    </node>\n';
+  });
+  let eid=0;
+  Object.entries(G.edges).forEach(([from,tos])=>{
+    tos.forEach(to=>{
+      xml += `    <edge id="e${eid++}" source="${esc(from)}" target="${esc(to)}"/>\n`;
+    });
+  });
+  xml += '  </graph>\n</graphml>\n';
+  const blob=new Blob([xml],{type:'application/xml'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='callgraph_'+Date.now()+'.graphml';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(a.href);},100);
+  toast('GraphML exported ✓','ok');
+}
+
+function exportDOT(){
+  if(!G){ toast('No graph to export','error'); return; }
+  const nodeMap={};
+  G.nodes.forEach(n=>nodeMap[n.id]=n);
+  let dot = 'digraph callgraph {\n';
+  dot += '  rankdir=LR;\n  node [shape=box, fontsize=10, fontname="monospace"];\n\n';
+  // Cluster by module
+  const byMod={};
+  G.nodes.forEach(n=>{
+    const m=n.mod||n.module||'external';
+    if(!byMod[m]) byMod[m]=[];
+    byMod[m].push(n);
+  });
+  Object.entries(byMod).forEach(([mod,nodes],i)=>{
+    if(mod==='external') return;
+    dot += `  subgraph cluster_${i} {\n`;
+    dot += `    label="${mod}";\n    style=dashed;\n    color="#666666";\n`;
+    nodes.forEach(n=>{
+      const shape = n.is_isr ? 'octagon' : n.is_entry ? 'doubleoctagon' : 'box';
+      const color = n.is_isr ? '#a78bfa' : n.is_entry ? '#22c55e' : '#4a8fff';
+      dot += `    "${n.id}" [shape=${shape}, color="${color}"];\n`;
+    });
+    dot += '  }\n';
+  });
+  // External nodes
+  (byMod['external']||[]).forEach(n=>{
+    dot += `  "${n.id}" [shape=ellipse, style=dashed, color="#666666"];\n`;
+  });
+  dot += '\n';
+  // Edges
+  Object.entries(G.edges).forEach(([from,tos])=>{
+    tos.forEach(to=>{
+      dot += `  "${from}" -> "${to}";\n`;
+    });
+  });
+  dot += '}\n';
+  const blob=new Blob([dot],{type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='callgraph_'+Date.now()+'.dot';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(a.href);},100);
+  toast('DOT exported ✓','ok');
+}
+
+// ══ REPORT GENERATOR ═════════════════════════════════════════
+async function generateReport(){
+  if(!G){ toast('Index a project first','error'); return; }
+  const btn = document.getElementById('btn-report');
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  toast('Generating report…');
+  try{
+    const r = await fetch('/api/report', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(G),
+    });
+    if(!r.ok){
+      const err = await r.json().catch(()=>({error:'Server error'}));
+      toast('Report failed: '+(err.error||r.statusText), 'error');
+      return;
+    }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const name = (G.source||'project').split('/').pop();
+    a.download = name + '-report.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(a.href);},100);
+    toast('Report downloaded ✓','ok');
+  } catch(e){
+    toast('Report error: '+e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📋 Report';
+  }
+}
+
+// ══ LIVE FILE WATCHER ════════════════════════════════════════
+let _watchActive = false;
+let _watchES = null;
+
+async function toggleWatch(){
+  if(_watchActive){
+    stopWatch();
+  } else {
+    startWatch();
+  }
+}
+
+async function startWatch(){
+  if(!G||!G.source){ toast('Index a project first','error'); return; }
+  try{
+    const r = await fetch('/api/watch/start',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({path:G.source})
+    });
+    const d = await r.json();
+    if(d.error){ toast('Watch error: '+d.error,'error'); return; }
+
+    _watchActive = true;
+    document.getElementById('btn-watch').classList.add('active');
+    document.getElementById('btn-watch').textContent='👁 Watching…';
+    toast('Watching for file changes…','ok');
+
+    // Poll SSE stream
+    _watchES = new EventSource('/api/stream/'+d.stream_id);
+    _watchES.onmessage = function(ev){
+      try{
+        const payload = JSON.parse(ev.data);
+        if(payload === '__DONE__'){ stopWatch(); return; }
+        if(typeof payload === 'string'){
+          const data = JSON.parse(payload);
+          if(data.changes && data.changes.length){
+            const names = data.changes.map(c=>c.file.split('/').pop()).slice(0,5).join(', ');
+            const count = data.changes.length;
+            toast(`${count} file${count>1?'s':''} changed: ${names}${count>5?'…':''} — click Re-index`,'warn');
+            // Show re-index prompt
+            showWatchBanner(data.changes);
+          }
+        }
+      }catch(e){}
+    };
+    _watchES.onerror = function(){
+      // Stream ended or error — just stop watching silently
+      stopWatch();
+    };
+  }catch(e){
+    toast('Watch failed: '+e.message,'error');
+  }
+}
+
+async function stopWatch(){
+  _watchActive = false;
+  if(_watchES){ _watchES.close(); _watchES=null; }
+  try{ await fetch('/api/watch/stop',{method:'POST'}); }catch(e){}
+  document.getElementById('btn-watch').classList.remove('active');
+  document.getElementById('btn-watch').textContent='👁 Watch';
+  hideWatchBanner();
+}
+
+function showWatchBanner(changes){
+  let banner = document.getElementById('watch-banner');
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = 'watch-banner';
+    banner.style.cssText='position:fixed;top:0;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--yellow);border-top:none;border-radius:0 0 8px 8px;padding:.4rem 1rem;font-size:.72rem;z-index:100;display:flex;align-items:center;gap:.6rem;box-shadow:0 4px 12px #00000040';
+    document.body.appendChild(banner);
+  }
+  const count = changes.length;
+  const types = {};
+  changes.forEach(c=>types[c.type]=(types[c.type]||0)+1);
+  const desc = Object.entries(types).map(([t,n])=>`${n} ${t}`).join(', ');
+  banner.innerHTML=`<span style="color:var(--yellow)">⚠</span> <span>${desc}</span>
+    <button class="ana-btn" style="font-size:.6rem;padding:.15rem .4rem" onclick="saveDiffSnapshot();newIndex()">Re-index + Diff</button>
+    <button class="ana-btn" style="font-size:.6rem;padding:.15rem .4rem" onclick="newIndex()">Re-index</button>
+    <button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:.8rem" onclick="hideWatchBanner()">✕</button>`;
+  banner.style.display='flex';
+}
+
+function hideWatchBanner(){
+  const b=document.getElementById('watch-banner');
+  if(b) b.style.display='none';
+}
+
 // ══ KEYBOARD SHORTCUTS ═══════════════════════════════════════
 document.addEventListener('keydown', e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
@@ -4167,6 +4845,58 @@ function togglePanel(name){
     else if(name==='periph') openPeriph();
   }
 }
+
+// ══ ENTRY POINT PATTERNS (Settings) ══════════════════════════
+const DEFAULT_ENTRY_PATTERNS = [
+  '^main$',
+  '^ISR_|^irq_|^interrupt_|^handler_',
+  '_IRQHandler$|_Handler$|_ISR$',
+  '^_init$|^init_|^startup$|^setup$',
+  '^reset_handler$|^_start$',
+];
+
+function getEntryPatterns(){
+  try{
+    const raw = localStorage.getItem('cg_entry_patterns');
+    if(raw){ return JSON.parse(raw); }
+  }catch(e){}
+  return DEFAULT_ENTRY_PATTERNS;
+}
+
+function saveEntryPatterns(){
+  const raw = document.getElementById('entry-patterns').value;
+  const patterns = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  try{ localStorage.setItem('cg_entry_patterns', JSON.stringify(patterns)); }catch(e){}
+  toast('Entry point patterns saved','ok');
+}
+
+function resetEntryPatterns(){
+  localStorage.removeItem('cg_entry_patterns');
+  document.getElementById('entry-patterns').value = DEFAULT_ENTRY_PATTERNS.join('\n');
+  toast('Patterns reset to defaults','ok');
+}
+
+function loadEntryPatternsUI(){
+  const patterns = getEntryPatterns();
+  document.getElementById('entry-patterns').value = patterns.join('\n');
+}
+
+function toggleSettings(){
+  document.getElementById('settings-body').classList.toggle('on');
+}
+
+function isEntryPoint(node){
+  // Use both analyzer flags AND user-configured patterns
+  if(node.is_isr || node.is_entry) return true;
+  const patterns = getEntryPatterns();
+  for(const p of patterns){
+    try{ if(new RegExp(p, 'i').test(node.id)) return true; }catch(e){}
+  }
+  return false;
+}
+
+// Show settings sect when app enters
+// (done in enterApp — settings-sect display toggled with analysis-sect)
 
 // ══ FILE BROWSER ══════════════════════════════════════════════
 function openFB(){

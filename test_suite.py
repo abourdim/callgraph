@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Callgraph Studio v1.3.0 — Full Automated Test Suite
+Callgraph Studio v1.6.0 — Full Automated Test Suite
 
 Tests:
   - Python syntax (server.py, analyzer.py)
@@ -107,7 +107,7 @@ required_ids = [
     "fn-list", "fn-search", "analysis-result",
     "info", "info-name", "info-body",
     "globals-panel", "race-panel", "rtos-panel", "periph-panel",
-    # v1.3.0 additions
+    # v1.6.0 additions
     "tracedir-sect", "mod-legend", "source-panel", "src-panel-title",
     "src-panel-body", "bookmarks-panel", "bookmarks-body",
     "btn-bookmarks", "ana-diff-btn",
@@ -132,7 +132,7 @@ required_fns = [
     "traceFunction", "clearTrace", "showInfo", "closeInfo",
     "setMode", "onDepth", "toggleExt", "buildFnList", "filterFns",
     "saveSession", "loadSession", "restoreSessionYes", "newIndex",
-    # v1.3.0 additions
+    # v1.6.0 additions
     "setTraceDir",       # trace direction toggle
     "toggleBookmark", "openBookmarks", "closeBookmarks",
     "renderBookmarks", "isBookmarked", "loadBookmarks",
@@ -226,7 +226,7 @@ required_routes = [
     ("/api/cancel/", "POST"),
     ("/api/runs", "GET"),
     ("/api/index", "POST"),
-    ("/api/source", "GET"),  # v1.3.0
+    ("/api/source", "GET"),  # v1.6.0
     ("/favicon.ico", "GET"),
 ]
 
@@ -659,9 +659,9 @@ except Exception as e:
 
 
 # ══════════════════════════════════════════════════════════════
-# 12. v1.3.0 FEATURE-SPECIFIC TESTS
+# 12. v1.6.0 FEATURE-SPECIFIC TESTS
 # ══════════════════════════════════════════════════════════════
-section("12. v1.3.0 feature checks")
+section("12. v1.6.0 feature checks")
 
 # Stack depth: memoized DFS (not exponential)
 if "const _memo = {}" in js_code and "function dfs(node)" in js_code:
@@ -680,10 +680,10 @@ if "autoTarget" in js_code and "G.nodes.find(n=>n.id==='main')" in js_code:
 else:
     fail("Auto-trace: main detection missing")
 
-if "G.nodes.find(n=>n.is_entry" in js_code:
-    ok("Auto-trace: falls back to is_entry")
+if "isEntryPoint(n)" in js_code or "G.nodes.find(n=>n.is_entry" in js_code:
+    ok("Auto-trace: falls back to entry point check")
 else:
-    fail("Auto-trace: no is_entry fallback")
+    fail("Auto-trace: no entry point fallback")
 
 if "G.nodes.length > 20" in js_code:
     ok("Auto-trace: gated on >20 nodes")
@@ -812,6 +812,78 @@ elif "fnModCol+'12'" in js_code:
 else:
     fail("Module color: no alpha fill found")
 
+# ── v1.6.0 features ─────────────────────────────────────────
+section("12b. v1.6.0 features")
+
+# RTOS ISR interaction diagram
+if "function buildRtosInteractionDiagram(" in js_code:
+    ok("RTOS: ISR interaction diagram function")
+else:
+    fail("RTOS: ISR interaction diagram missing")
+
+if "FromISR" in js_code:
+    ok("RTOS: detects FromISR API calls")
+else:
+    fail("RTOS: no FromISR detection")
+
+# Coupling analysis
+if "function runCoupling(" in js_code:
+    ok("Coupling: runCoupling() defined")
+else:
+    fail("Coupling: runCoupling() missing")
+
+if "'ana-coupling-btn'" in js_code:
+    ok("Coupling: button in anaSetActive")
+else:
+    fail("Coupling: button missing from anaSetActive")
+
+if "function highlightCoupledModules(" in js_code:
+    ok("Coupling: highlight function defined")
+else:
+    fail("Coupling: highlight missing")
+
+# Configurable entry points
+if "function isEntryPoint(" in js_code:
+    ok("Entry points: isEntryPoint() defined")
+else:
+    fail("Entry points: isEntryPoint() missing")
+
+if "DEFAULT_ENTRY_PATTERNS" in js_code:
+    ok("Entry points: default patterns defined")
+else:
+    fail("Entry points: no defaults")
+
+if "cg_entry_patterns" in js_code:
+    ok("Entry points: localStorage persistence")
+else:
+    fail("Entry points: no localStorage")
+
+if "function toggleSettings(" in js_code:
+    ok("Entry points: settings toggle")
+else:
+    fail("Entry points: no settings toggle")
+
+# Force-directed layout
+if "function forceLayout(" in js_code:
+    ok("Force layout: forceLayout() defined")
+else:
+    fail("Force layout: missing")
+
+if "function toggleForce(" in js_code:
+    ok("Force layout: toggle function")
+else:
+    fail("Force layout: no toggle")
+
+if "let useForce" in js_code:
+    ok("Force layout: state variable")
+else:
+    fail("Force layout: no state")
+
+if "useForce ? forceLayout" in js_code:
+    ok("Force layout: integrated in renderFnGraph")
+else:
+    fail("Force layout: not integrated")
+
 
 # ══════════════════════════════════════════════════════════════
 # 13. EDGE CASES
@@ -837,10 +909,10 @@ else:
     fail("Server: system paths not blocked")
 
 # Version check
-if "v1.3.0" in html:
-    ok("Version: v1.3.0 in index.html")
+if "v1.6.0" in html:
+    ok("Version: v1.6.0 in index.html")
 else:
-    fail("Version: v1.3.0 not found in index.html")
+    fail("Version: v1.6.0 not found in index.html")
 
 
 # ══════════════════════════════════════════════════════════════

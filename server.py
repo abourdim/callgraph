@@ -496,6 +496,83 @@ def api_source():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ── Report generator ─────────────────────────────────────────
+@app.route("/api/report", methods=["POST"])
+def api_report():
+    graph = request.get_json()
+    if not graph or 'nodes' not in graph:
+        return jsonify({"error": "invalid graph data"}), 400
+    try:
+        report_dir = BASE_DIR / "report"
+        sys.path.insert(0, str(report_dir))
+        from generator import generate_report_data, build_html
+        report_data = generate_report_data(graph)
+        html = build_html(report_data)
+        return Response(html, mimetype="text/html",
+                       headers={"Content-Disposition": f"attachment; filename={Path(graph.get('source','project')).name}-report.html"})
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
+
+# ── Live file watcher ────────────────────────────────────────
+_watch_state = {"active": False, "path": None, "stream_id": None, "snapshot": {}}
+
+def _file_snapshot(src_path):
+    """Get mtime snapshot of all .c/.h files under src_path."""
+    snap = {}
+    try:
+        for f in Path(src_path).rglob("*.[ch]"):
+            try:
+                snap[str(f)] = f.stat().st_mtime
+            except:
+                pass
+    except:
+        pass
+    return snap
+
+@app.route("/api/watch/start", methods=["POST"])
+def api_watch_start():
+    src = request.json.get("path", "").strip()
+    if not src or not Path(src).is_dir():
+        return jsonify({"error": "invalid path"}), 400
+
+    stream_id = str(uuid.uuid4())
+    _streams[stream_id] = []
+    _watch_state["active"] = True
+    _watch_state["path"] = src
+    _watch_state["stream_id"] = stream_id
+    _watch_state["snapshot"] = _file_snapshot(src)
+
+    def _poll():
+        while _watch_state["active"] and _watch_state["stream_id"] == stream_id:
+            time.sleep(2)
+            new_snap = _file_snapshot(src)
+            old_snap = _watch_state["snapshot"]
+
+            changed = []
+            for f, mt in new_snap.items():
+                if f not in old_snap:
+                    changed.append({"file": f, "type": "added"})
+                elif mt != old_snap[f]:
+                    changed.append({"file": f, "type": "modified"})
+            for f in old_snap:
+                if f not in new_snap:
+                    changed.append({"file": f, "type": "deleted"})
+
+            if changed:
+                _watch_state["snapshot"] = new_snap
+                _push(stream_id, json.dumps({"changes": changed}))
+
+        _push(stream_id, "__DONE__")
+
+    threading.Thread(target=_poll, daemon=True).start()
+    return jsonify({"stream_id": stream_id})
+
+@app.route("/api/watch/stop", methods=["POST"])
+def api_watch_stop():
+    _watch_state["active"] = False
+    return jsonify({"ok": True})
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7411))
     print(f"\n  ✦ Callgraph Web  →  http://localhost:{port}\n")
