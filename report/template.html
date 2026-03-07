@@ -504,7 +504,6 @@ function buildLayerDiagram(){
   const mods = (G.mods||[]).filter(m=>m!=='external'&&m!=='.');
   if(mods.length < 2) return '<div style="color:var(--text3);font-size:.78rem">Single module — no layer diagram needed.</div>';
 
-  // Compute layers via topological sort (same as reading order but reversed)
   const modEdges = G.mod_edges||{};
   const deps = {};
   mods.forEach(m=>deps[m]=new Set());
@@ -513,35 +512,22 @@ function buildLayerDiagram(){
     if(from && to && deps[from] && deps[to] && from !== to) deps[from].add(to);
   }
 
-  // Layer = longest path from roots
-  const layer = {};
-  const visited = new Set();
-  function dfs(m, d){
-    if(visited.has(m)) return;
-    visited.add(m);
-    layer[m] = Math.max(layer[m]||0, d);
-    for(const dep of (deps[m]||[])) dfs(dep, d); // deps go same level or below
-  }
-  // Find roots: mods that nobody depends on
-  const hasParent = new Set();
-  for(const [m, ds] of Object.entries(deps)) ds.forEach(d=>hasParent.add(d));
-  const roots = mods.filter(m=>!hasParent.has(m));
-  if(!roots.length) roots.push(mods[0]);
-
-  // BFS layering
+  // Longest path layering (topological depth)
+  const inDeg = {}; mods.forEach(m=>inDeg[m]=0);
+  for(const [m, ds] of Object.entries(deps)) ds.forEach(d=>{if(inDeg[d]!==undefined) inDeg[d]++;});
   const layerMap = {};
-  const q = roots.map(r=>[r,0]);
+  // BFS from roots, but use longest path (max depth)
   const vis = new Set();
-  while(q.length){
-    const [m,d] = q.shift();
-    if(vis.has(m)) continue;
-    vis.add(m);
-    layerMap[m] = d;
+  function assignLayer(m, d){
+    layerMap[m] = Math.max(layerMap[m]||0, d);
     for(const dep of (deps[m]||[])){
-      if(!vis.has(dep)) q.push([dep, d+1]);
+      assignLayer(dep, d+1);
     }
   }
-  mods.forEach(m=>{ if(layerMap[m]===undefined) layerMap[m] = 0; });
+  const roots = mods.filter(m=>inDeg[m]===0);
+  if(!roots.length) roots.push(mods[0]);
+  roots.forEach(r=>assignLayer(r, 0));
+  mods.forEach(m=>{ if(layerMap[m]===undefined) layerMap[m]=0; });
 
   // Group by layer
   const byLayer = {};
@@ -551,47 +537,111 @@ function buildLayerDiagram(){
   }
   const layers = Object.keys(byLayer).map(Number).sort();
 
-  // Layout
-  const NW = 130, NH = 40, HGAP = 20, VGAP = 50, PAD = 30;
+  // Layout — TOP-DOWN, generous spacing
+  const NW = 150, NH = 46, HGAP = 40, VGAP = 70, PAD = 40;
   const maxPerLayer = Math.max(...layers.map(l=>byLayer[l].length));
-  const W = Math.max(maxPerLayer * (NW+HGAP) + PAD*2, 400);
-  const H = layers.length * (NH+VGAP) + PAD*2;
+  // Limit columns: if too many in one row, split into sub-rows
+  const MAX_PER_ROW = 4;
+  const layoutRows = []; // [{layer, mods}]
+  layers.forEach(l=>{
+    const row = byLayer[l];
+    for(let i=0; i<row.length; i+=MAX_PER_ROW){
+      layoutRows.push({layer:l, mods:row.slice(i, i+MAX_PER_ROW)});
+    }
+  });
 
+  const W = Math.max(MAX_PER_ROW * (NW+HGAP) + PAD*2, 500);
+  const H = layoutRows.length * (NH+VGAP) + PAD*2;
   const svg = svgEl('svg', {width:W, height:H, style:'display:block;max-width:100%'});
 
-  // Layer labels + bands
+  // Layer label names
+  const layerNames = {};
+  layers.forEach((l,i)=>{
+    if(i===0) layerNames[l]='Application';
+    else if(i===layers.length-1) layerNames[l]='Foundation';
+    else layerNames[l]='Layer '+l;
+  });
+
   const positions = {};
-  layers.forEach((l, li)=>{
-    const row = byLayer[l];
+  layoutRows.forEach((lr, ri)=>{
+    const row = lr.mods;
     const rowW = row.length*(NW+HGAP)-HGAP;
     const xOff = (W-rowW)/2;
-    const y = PAD + li*(NH+VGAP);
+    const y = PAD + ri*(NH+VGAP);
 
-    // Band background
-    svg.appendChild(svgEl('rect', {x:PAD/2, y:y-8, width:W-PAD, height:NH+16, rx:8, fill:li===0?'color-mix(in srgb, var(--accent) 6%, transparent)':'color-mix(in srgb, var(--bg3) 50%, transparent)', stroke:'none'}));
+    // Band
+    const bandColor = ri===0?'color-mix(in srgb, var(--accent) 6%, transparent)':'color-mix(in srgb, var(--bg3) 40%, transparent)';
+    svg.appendChild(svgEl('rect', {x:PAD/2, y:y-10, width:W-PAD, height:NH+20, rx:10, fill:bandColor, stroke:'none'}));
+
+    // Layer label on left
+    if(layerNames[lr.layer]){
+      svg.appendChild(svgText(PAD-5, y+NH/2, layerNames[lr.layer], {'font-size':'7','fill':'var(--text3)','text-anchor':'end','font-style':'italic'}));
+    }
 
     row.forEach((mod, mi)=>{
       const x = xOff + mi*(NW+HGAP);
       positions[mod] = {x: x+NW/2, y: y+NH/2, top: y, bot: y+NH, left: x, right: x+NW};
       const col = modColor(mod);
-      svg.appendChild(svgRect(x, y, NW, NH, {fill:'var(--bg2)', stroke:col, 'stroke-width':'2'}));
 
-      const risk = (A.risk_scores.modules||{})[mod];
-      const grade = risk ? risk.grade : '?';
-      svg.appendChild(svgText(x+NW/2, y+NH/2-4, mod.length>14?mod.slice(0,12)+'…':mod, {'font-size':'10', 'font-weight':'500', fill:col}));
-      svg.appendChild(svgText(x+NW/2, y+NH/2+10, `${risk?risk.fn_count:0} fns · ${grade}`, {'font-size':'7.5', fill:'var(--text3)'}));
+      // Node shadow
+      svg.appendChild(svgEl('rect', {x:x+2, y:y+2, width:NW, height:NH, rx:8, fill:'#00000015', stroke:'none'}));
+      // Node
+      svg.appendChild(svgRect(x, y, NW, NH, {fill:'var(--bg2)', stroke:col, 'stroke-width':'2', rx:8}));
+
+      const risk = (A.risk_scores||{}).modules ? (A.risk_scores.modules[mod]||{}) : {};
+      const grade = risk.grade || '?';
+      const fnCount = risk.fn_count || 0;
+      svg.appendChild(svgText(x+NW/2, y+NH/2-6, mod.length>16?mod.slice(0,14)+'…':mod, {'font-size':'11', 'font-weight':'600', fill:col}));
+      svg.appendChild(svgText(x+NW/2, y+NH/2+10, `${fnCount} fns · ${grade}`, {'font-size':'8', fill:'var(--text3)'}));
     });
   });
 
-  // Arrows between modules
+  // Edges: curved, with offset to avoid overlap
+  const edgeList = [];
   for(const [key, count] of Object.entries(modEdges)){
     const [from, to] = key.split('→');
-    const pf = positions[from], pt = positions[to];
-    if(!pf || !pt || from === to) continue;
-    const opacity = Math.min(0.3 + count*0.1, 1);
-    const col = `color-mix(in srgb, var(--accent) ${Math.round(opacity*100)}%, transparent)`;
-    svg.appendChild(svgCurve(pf.x, pf.bot, pt.x, pt.top, modColor(from)));
+    if(positions[from] && positions[to] && from !== to){
+      edgeList.push({from, to, count});
+    }
   }
+  // Sort by count (draw thicker/more important last = on top)
+  edgeList.sort((a,b)=>a.count-b.count);
+
+  edgeList.forEach((e, ei)=>{
+    const pf = positions[e.from], pt = positions[e.to];
+    const col = modColor(e.from);
+    const thickness = Math.min(1 + e.count * 0.3, 4);
+    const opacity = Math.min(0.4 + e.count * 0.08, 0.9);
+
+    // Offset the control points slightly per edge to avoid overlap
+    const offset = (ei % 5 - 2) * 8;
+
+    // Determine direction: same row vs different row
+    if(Math.abs(pf.y - pt.y) < 10){
+      // Same row: arc over the top
+      const mx = (pf.x + pt.x)/2;
+      const arcY = Math.min(pf.top, pt.top) - 30 - Math.abs(offset);
+      const path = svgEl('path', {
+        d:`M${pf.x},${pf.top} Q${mx},${arcY} ${pt.x},${pt.top}`,
+        fill:'none', stroke:col, 'stroke-width':thickness.toFixed(1), 'stroke-opacity':opacity.toFixed(2)
+      });
+      svg.appendChild(path);
+    } else {
+      // Different rows: S-curve
+      const path = svgEl('path', {
+        d:`M${pf.x+offset},${pf.bot} C${pf.x+offset},${pf.bot+VGAP*0.4} ${pt.x+offset},${pt.top-VGAP*0.4} ${pt.x+offset},${pt.top}`,
+        fill:'none', stroke:col, 'stroke-width':thickness.toFixed(1), 'stroke-opacity':opacity.toFixed(2)
+      });
+      svg.appendChild(path);
+    }
+
+    // Edge label (call count) at midpoint
+    if(e.count > 2){
+      const mx = (pf.x+pt.x)/2+offset;
+      const my = (pf.bot+pt.top)/2;
+      svg.appendChild(svgText(mx, my, e.count.toString(), {'font-size':'7','fill':col,'font-weight':'500'}));
+    }
+  });
 
   return wrapSvg(svg, W);
 }

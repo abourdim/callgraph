@@ -49,7 +49,7 @@ header() {
     clear
     echo -e "${C}"
     echo "  ╔══════════════════════════════════════════╗"
-    echo "  ║       ✦  Callgraph Studio  v1.8          ║"
+    echo "  ║       ✦  Callgraph Studio  v1.9          ║"
     echo "  ║       C · Interactive Call Graph         ║"
     echo "  ╚══════════════════════════════════════════╝"
     echo -e "${N}"
@@ -222,11 +222,56 @@ do_launch() {
         [[ "${ans,,}" != "y" ]] && return
     fi
     echo ""
+
+    # Auto-kill stale Callgraph server on target port
+    local stale_pid
+    stale_pid=$(lsof -ti ":${PORT}" 2>/dev/null)
+    if [[ -n "$stale_pid" ]]; then
+        # Check if it's our server.py
+        local cmd
+        cmd=$(ps -p "$stale_pid" -o args= 2>/dev/null || echo "")
+        if echo "$cmd" | grep -q "server.py"; then
+            echo -e "  ${Y}⚠  Killing stale Callgraph server (PID $stale_pid) on port ${PORT}${N}"
+            kill "$stale_pid" 2>/dev/null
+            sleep 0.5
+            # Force kill if still alive
+            kill -9 "$stale_pid" 2>/dev/null 2>&1
+            sleep 0.3
+        else
+            # Something else is using the port — try next ports
+            echo -e "  ${Y}⚠  Port ${PORT} in use by another program — finding free port...${N}"
+            local try_port=$((PORT + 1))
+            while lsof -ti ":${try_port}" &>/dev/null && [[ $try_port -lt $((PORT + 20)) ]]; do
+                try_port=$((try_port + 1))
+            done
+            if lsof -ti ":${try_port}" &>/dev/null; then
+                echo -e "  ${R}✗ No free port found (tried ${PORT}-${try_port})${N}"
+                sleep 2; return
+            fi
+            PORT=$try_port
+            echo -e "  ${G}✓ Using port ${PORT}${N}"
+        fi
+    fi
+
     echo -e "  ${G}Launching...${N}"
     echo -e "  ${W}➜  http://localhost:${PORT}${N}"
     echo ""
     cd "$SCRIPT_DIR"
-    exec python3 "$SCRIPT_DIR/server.py"
+
+    # Auto-open browser after a short delay
+    (
+        sleep 1.5
+        local url="http://localhost:${PORT}"
+        if command -v xdg-open &>/dev/null; then
+            xdg-open "$url" 2>/dev/null &
+        elif command -v open &>/dev/null; then
+            open "$url" 2>/dev/null &
+        elif command -v wslview &>/dev/null; then
+            wslview "$url" 2>/dev/null &
+        fi
+    ) &
+
+    PORT=$PORT exec python3 "$SCRIPT_DIR/server.py"
 }
 
 # ── Diagnostics ───────────────────────────────────────────────

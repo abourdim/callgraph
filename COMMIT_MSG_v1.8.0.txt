@@ -1,0 +1,24 @@
+feat: Callgraph Studio v1.8.0 — Deep report v2 + diagrams everywhere
+
+Report generator rewritten (16 engines):
+- Architecture narrative with per-module prose + subgraph + dependency diagram
+- Exhaustive requirements (per-peripheral, per-register, per-ISR, per-race, per-global)
+- Function deep analysis (risk/complexity/impact per function, top 20 detailed cards)
+- Data flow narratives + system-wide data flow diagram
+- Block interaction map with per-pair mini diagrams
+- Peripheral register map (every register, every accessor, ISR vs task, conflict flags)
+- Race condition deep analysis (all readers/writers, fix recommendations)
+- Dead code investigation (intent hints, removal recommendations)
+- 50-100 handover questions, 100-300 requirements on real projects
+
+Docs generator (new):
+- Single HTML or multi-file ZIP with per-function pages + mini call graphs
+- 📑 Docs button in toolbar
+
+Fixes:
+- Module import collision (importlib.util)
+- scrollTo native name collision
+- JSON escaping for large graphs
+- Template path resolution
+
+Tests: 794 (262 + 108 + 90 + 334) · Lines: 12,000+
