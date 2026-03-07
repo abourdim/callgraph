@@ -743,14 +743,23 @@ def generate_report_data(graph):
     }
 
 
-def build_html(report_data):
+def build_html(report_data, template_path=None):
     """Inject REPORT_DATA into template.html and return the full HTML string."""
-    template_path = Path(__file__).parent / "template.html"
+    if template_path is None:
+        template_path = Path(__file__).parent / "template.html"
+    else:
+        template_path = Path(template_path)
     if not template_path.exists():
         raise FileNotFoundError(f"template.html not found at {template_path}")
 
     template = template_path.read_text(encoding='utf-8')
-    data_json = json.dumps(report_data, separators=(',', ':'))
+
+    # Serialize with ensure_ascii=True to avoid encoding issues in embedded JS
+    data_json = json.dumps(report_data, separators=(',', ':'), ensure_ascii=True)
+
+    # Escape </script> sequences that could break the HTML
+    data_json = data_json.replace('</script>', '<\\/script>')
+    data_json = data_json.replace('<!--', '<\\!--')
 
     # Replace the placeholder in template
     html = template.replace('/*__REPORT_DATA__*/', f'const REPORT_DATA = {data_json};')

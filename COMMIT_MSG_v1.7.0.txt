@@ -1,0 +1,94 @@
+feat: Callgraph Studio v1.7.0
+
+═══════════════════════════════════════════════════════
+  Callgraph Studio  v1.7.0
+  C · Interactive Call Graph Explorer
+  794 tests · 90 smoke · 11,500+ lines
+═══════════════════════════════════════════════════════
+
+── FILES ─────────────────────────────────────────────
+
+  index.html           4,992 lines   UI + SVG renderer
+  server.py              612 lines   Flask backend
+  analyzer.py            649 lines   tree-sitter engine
+  start.sh               321 lines   TUI launcher
+  report/generator.py    785 lines   Report analysis engines
+  report/template.html 1,606 lines   Interactive report template
+  docs/generator.py      487 lines   Function docs generator (NEW)
+  test_suite.py          931 lines   262 static tests
+  smoke_test.py          480 lines   90 runtime tests
+  deep_test.py           840 lines   334 deep coverage tests
+  report/test_report.py  442 lines   108 report engine tests
+
+── v1.3.0 ────────────────────────────────────────────
+
+[FIX] Stack depth O(2^n) → memoized DP O(V+E)
+[FIX] Module color alpha, panel mutex, session traceDir
+[FIX] String injection safety (esc helper)
+[FIX] anaSetActive coverage for all buttons
+[FEAT] Auto-trace main on startup (depth 3, >20 nodes)
+[FEAT] Trace direction toggle (Both / Down / Up)
+[FEAT] Module-aware nodes (color + label + legend)
+[FEAT] Diff mode (⚖ baseline snapshot + compare)
+[FEAT] Source annotation view (📄 /api/source + badges)
+[FEAT] Persistent bookmarks (★ localStorage + export)
+
+── v1.4.0 ────────────────────────────────────────────
+
+[FEAT] Report app — 9 analysis engines:
+       risk scorer, reading order, bus factor,
+       pattern detector, change difficulty,
+       question generator, inferred requirements,
+       dependency timeline, glossary
+[FEAT] Report template — 17 sections, sidebar TOC,
+       dark/light theme, print CSS, searchable tables
+[FEAT] /api/report endpoint + 📋 Report button
+[FEAT] 7 SVG diagrams: layer, coupling matrix,
+       data flow, ISR map, HW abstraction,
+       module subgraph, boot sequence
+[FEAT] Interactive: pan/zoom on diagrams, hover popups,
+       click highlight, What-If explorer,
+       timeline slider, sortable tables
+
+── v1.5.0 ────────────────────────────────────────────
+
+[FEAT] RTOS task→ISR interaction diagram
+[FEAT] Inter-module coupling analysis (🔗)
+[FEAT] Configurable entry point patterns (⚙ settings)
+[FEAT] Force-directed graph layout (⚡ toggle)
+
+── v1.6.0 ────────────────────────────────────────────
+
+[FEAT] Themes: Dark / Light / High-Contrast / Alhambra
+[FEAT] Source syntax highlighting (C keywords, types,
+       strings, numbers, comments, preprocessor)
+[FEAT] Source diff markers (+new / ~changed badges)
+[FEAT] Export GraphML (yEd) + DOT (Graphviz)
+[FEAT] Path finder Web Worker (non-blocking + cancel)
+[FEAT] Live file watcher (👁 polling + change banner)
+[FIX] scrollTo → scrollToSect (native name collision)
+[FIX] toggleCollapse extracted as named function
+[FIX] Native name collision detection in tests
+
+── v1.7.0 ────────────────────────────────────────────
+
+[FEAT] Function documentation generator (📑 Docs):
+       - Single HTML: all functions + mini call graphs
+       - Multi-file ZIP: per-function + per-module pages
+       - Module color coding, flags, globals, races
+       - Clickable navigation, search, theme toggle
+[FIX] Module import collision (report vs docs generator)
+       — importlib.util with unique module names
+[FIX] Report template path resolution via explicit arg
+[FIX] JSON escaping (ensure_ascii, </script> safety)
+[FIX] Better error visibility (toast + console + terminal)
+[FIX] Server-side logging for report/docs generation
+
+── TEST SUITES ───────────────────────────────────────
+
+test_suite.py     262 tests  static analysis
+report tests      108 tests  9 engines + HTML assembly
+smoke_test.py      90 tests  real server + report + watch
+deep_test.py      334 tests  169 JS fns, 47 CSS, 56 features
+                  ─────────
+                  794 total

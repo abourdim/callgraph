@@ -530,7 +530,7 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
     <span class="bism-ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</span>
     <div class="bism-rule"><span class="bism-gem">✦</span></div>
     <div class="bism-title">Callgraph Studio</div>
-    <div class="bism-sub">C · Interactive Call Graph Explorer&nbsp;v1.6.0</div>
+    <div class="bism-sub">C · Interactive Call Graph Explorer&nbsp;v1.7.0</div>
   </div>
   <div id="restore-banner" style="display:none;align-items:center;gap:.7rem;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:.65rem 1rem;margin-bottom:.8rem;font-size:.78rem;">
     <span style="color:var(--text3)">↩</span>
@@ -721,6 +721,7 @@ kbd{display:inline-block;padding:.1rem .35rem;border-radius:4px;border:1px solid
         <button class="gbtn"                  onclick="exportDOT()"      title="Export as DOT (Graphviz)">DOT</button>
         <button class="gbtn" id="btn-report"  onclick="generateReport()" title="Generate handover report" style="color:#f59e0b">📋 Report</button>
         <button class="gbtn" id="btn-watch"   onclick="toggleWatch()"    title="Watch for file changes">👁 Watch</button>
+        <button class="gbtn" id="btn-docs"    onclick="showDocsMenu()"   title="Generate function docs">📑 Docs</button>
         <div class="gbar-sep"></div>
         <button class="gbtn" id="btn-globals" onclick="openGlobals()" title="Global variable dependencies" style="color:#22c55e">Globals</button>
         <button class="gbtn" id="btn-races"   onclick="openRaces()"   title="Race condition candidates"   style="color:#ef6548">Races</button>
@@ -4671,8 +4672,11 @@ async function generateReport(){
       body: JSON.stringify(G),
     });
     if(!r.ok){
-      const err = await r.json().catch(()=>({error:'Server error'}));
-      toast('Report failed: '+(err.error||r.statusText), 'error');
+      const text = await r.text();
+      let msg = r.statusText;
+      try{ const j = JSON.parse(text); msg = j.error || j.trace || msg; }catch(e){ msg = text.slice(0,200); }
+      toast('Report failed: '+msg, 'error');
+      console.error('Report error:', text);
       return;
     }
     const blob = await r.blob();
@@ -4688,6 +4692,67 @@ async function generateReport(){
   } finally {
     btn.disabled = false;
     btn.textContent = '📋 Report';
+  }
+}
+
+// ══ DOCS GENERATOR ══════════════════════════════════════════
+function showDocsMenu(){
+  if(!G){ toast('Index a project first','error'); return; }
+  // Simple dropdown
+  let menu = document.getElementById('docs-menu');
+  if(!menu){
+    menu = document.createElement('div');
+    menu.id = 'docs-menu';
+    menu.style.cssText='position:fixed;z-index:100;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:.3rem 0;box-shadow:0 4px 16px #00000040;display:none';
+    menu.innerHTML=`
+      <div class="ctx-mi" onclick="generateDocs('single');hideDocsMenu()">📄 Single HTML file</div>
+      <div class="ctx-mi" onclick="generateDocs('multi');hideDocsMenu()">📦 Multi-file ZIP (website)</div>
+    `;
+    document.body.appendChild(menu);
+  }
+  const btn = document.getElementById('btn-docs');
+  const rect = btn.getBoundingClientRect();
+  menu.style.left = rect.left+'px';
+  menu.style.top = (rect.bottom+4)+'px';
+  menu.style.display = menu.style.display==='block'?'none':'block';
+  setTimeout(()=>document.addEventListener('click',hideDocsMenu,{once:true}),10);
+}
+
+function hideDocsMenu(){
+  const m=document.getElementById('docs-menu');
+  if(m) m.style.display='none';
+}
+
+async function generateDocs(mode){
+  if(!G){ toast('Index a project first','error'); return; }
+  const btn = document.getElementById('btn-docs');
+  btn.disabled=true; btn.textContent='⏳';
+  toast('Generating docs…');
+  try{
+    const r = await fetch('/api/docs?mode='+mode, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(G),
+    });
+    if(!r.ok){
+      const text = await r.text();
+      let msg = r.statusText;
+      try{ const j = JSON.parse(text); msg = j.error || j.trace || msg; }catch(e){ msg = text.slice(0,200); }
+      toast('Docs failed: '+msg,'error');
+      console.error('Docs error:', text);
+      return;
+    }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const name = (G.source||'project').split('/').pop();
+    a.download = mode==='multi' ? name+'-docs.zip' : name+'-docs.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(a.href);},100);
+    toast(`Docs downloaded (${mode}) ✓`,'ok');
+  }catch(e){
+    toast('Docs error: '+e.message,'error');
+  }finally{
+    btn.disabled=false; btn.textContent='📑 Docs';
   }
 }
 

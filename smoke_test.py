@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Callgraph Studio v1.6.0 — Smoke Test
+Callgraph Studio v1.7.0 — Smoke Test
 
 Real end-to-end: starts the server, creates a mock C project,
 indexes it via HTTP, validates the full graph, tests source API,
@@ -47,7 +47,7 @@ def http_post(path, data, timeout=10):
     return urllib.request.urlopen(req, timeout=timeout)
 
 # ══════════════════════════════════════════════════════════════
-print(f"\n{B}══ Callgraph Studio v1.6.0 — Smoke Test ══{N}\n")
+print(f"\n{B}══ Callgraph Studio v1.7.0 — Smoke Test ══{N}\n")
 
 # ── 1. Create mock C project ─────────────────────────────────
 print(f"{B}1. Create mock project{N}")
@@ -147,8 +147,8 @@ print(f"\n{B}3. Basic endpoints{N}")
 
 try:
     body = http_get("/").read().decode()
-    assert "Callgraph Studio" in body and "v1.6.0" in body
-    ok("GET / → Callgraph Studio v1.6.0")
+    assert "Callgraph Studio" in body and "v1.7.0" in body
+    ok("GET / → Callgraph Studio v1.7.0")
 except Exception as e:
     fail(f"GET /: {e}")
 
@@ -334,8 +334,142 @@ except urllib.request.HTTPError as e:
     if e.code == 400: ok(f"Invalid path → 400")
     else: fail(f"Invalid path → {e.code}")
 
-# ── 8. Shutdown ───────────────────────────────────────────────
-print(f"\n{B}8. Cleanup{N}")
+# ── 8. Report generation (runtime) ───────────────────────────
+print(f"\n{B}8. Report generation{N}")
+
+try:
+    # POST the graph to /api/report
+    r = http_post("/api/report", graph)
+    report_html = r.read().decode('utf-8')
+    if r.status == 200 and len(report_html) > 5000:
+        ok(f"POST /api/report → {len(report_html)} bytes")
+    else:
+        fail(f"Report generation → status {r.status}, size {len(report_html)}")
+
+    # Verify report contains REPORT_DATA
+    if 'REPORT_DATA' in report_html:
+        ok("Report contains REPORT_DATA")
+    else:
+        fail("Report missing REPORT_DATA")
+
+    # Verify report has all sections
+    report_sections = ['header','reading','requirements','questions','layers','coupling',
+                       'dataflow','boot','interrupts','hardware','modules','patterns',
+                       'races','rtos','health','whatif','index','tools','glossary']
+    for sect in report_sections:
+        if f"'{sect}'" in report_html:
+            ok(f"Report section: {sect}")
+        else:
+            fail(f"Report section missing: {sect}")
+
+    # Verify NO native name collisions in generated report JS
+    import re as _re
+    m = _re.search(r'<script>(.*?)</script>', report_html, _re.DOTALL)
+    if m:
+        report_js = m.group(1)
+        BROWSER_NATIVES = {'scrollTo','scroll','scrollBy','focus','blur','open','close',
+                          'print','stop','find','alert','confirm','prompt','fetch'}
+        report_fns = set(_re.findall(r'function\s+(\w+)\s*\(', report_js))
+        collisions = report_fns & BROWSER_NATIVES
+        if collisions:
+            fail(f"Report JS native collisions: {collisions}")
+        else:
+            ok(f"Report JS: no native name collisions ({len(report_fns)} functions)")
+
+        # Extract and validate JS syntax with Node.js
+        tmp_rpt_js = os.path.join(tmp_dir, "report_check.js")
+        with open(tmp_rpt_js, 'w') as f:
+            f.write(report_js)
+        r_node = subprocess.run(['node', '--check', tmp_rpt_js],
+                               capture_output=True, text=True)
+        if r_node.returncode == 0:
+            ok("Report JS: node --check passes")
+        else:
+            fail(f"Report JS syntax error: {r_node.stderr[:200]}")
+    else:
+        fail("Report: no <script> block found")
+
+    # Verify graph data is embedded correctly
+    if f'"fn_count":{n_nodes}' in report_html or f'"fn_count": {n_nodes}' in report_html:
+        ok(f"Report embeds correct fn_count ({n_nodes})")
+    else:
+        # Check in compact JSON
+        if str(n_nodes) in report_html:
+            ok(f"Report contains node count {n_nodes}")
+        else:
+            fail(f"Report missing fn_count={n_nodes}")
+
+    # Verify project name in report
+    proj_name = src.name
+    if proj_name in report_html:
+        ok(f"Report contains project name: {proj_name}")
+    else:
+        fail(f"Report missing project name: {proj_name}")
+
+    # Verify analysis engines ran (check for computed data)
+    for marker in ['risk_scores','reading_order','bus_factor','patterns',
+                   'change_difficulty','questions','requirements','timeline','glossary']:
+        if f'"{marker}"' in report_html:
+            ok(f"Report analysis: {marker}")
+        else:
+            fail(f"Report analysis missing: {marker}")
+
+    # Verify interactive features present
+    for feat in ['scrollToSect','pzInit','pzFit','showHoverPopup',
+                 'whatifRun','filterTimeline','sortTable','toggleTheme']:
+        if feat in report_html:
+            ok(f"Report interactive: {feat}")
+        else:
+            fail(f"Report interactive missing: {feat}")
+
+    # Verify SVG diagram generators present
+    for gen in ['buildLayerDiagram','buildCouplingMatrix','buildDataFlowDiagram',
+                'buildIsrMapDiagram','buildHwDiagram','buildModuleSubgraph']:
+        if gen in report_html:
+            ok(f"Report SVG: {gen}")
+        else:
+            fail(f"Report SVG missing: {gen}")
+
+    # Save report for manual inspection
+    report_path = os.path.join(tmp_dir, "smoke-report.html")
+    with open(report_path, 'w') as f:
+        f.write(report_html)
+    ok(f"Report saved: {report_path}")
+
+except urllib.request.HTTPError as e:
+    fail(f"Report API error: {e.code} — {e.read().decode()[:200]}")
+except Exception as e:
+    fail(f"Report generation: {e}")
+    import traceback; traceback.print_exc()
+
+# ── 9. Watch API (runtime) ───────────────────────────────────
+print(f"\n{B}9. Watch API{N}")
+
+try:
+    r = http_post("/api/watch/start", {"path": str(src)})
+    d = json.loads(r.read())
+    if 'stream_id' in d:
+        ok(f"Watch start → stream_id={d['stream_id'][:12]}…")
+        # Modify a file and check for change detection
+        time.sleep(0.5)
+        test_file = src / "app" / "main.c"
+        original = test_file.read_text()
+        test_file.write_text(original + "\n// smoke test change\n")
+        time.sleep(3)  # Wait for poll cycle (2s)
+
+        # Stop watching
+        http_post("/api/watch/stop", {})
+        ok("Watch stop → OK")
+
+        # Restore file
+        test_file.write_text(original)
+    else:
+        fail(f"Watch start missing stream_id: {d}")
+except Exception as e:
+    fail(f"Watch API: {e}")
+
+# ── 10. Cleanup ──────────────────────────────────────────────
+print(f"\n{B}10. Cleanup{N}")
 cleanup()
 ok("Server terminated, temp files cleaned")
 

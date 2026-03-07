@@ -499,17 +499,60 @@ def api_source():
 # ── Report generator ─────────────────────────────────────────
 @app.route("/api/report", methods=["POST"])
 def api_report():
+    graph = request.get_json(force=True, silent=True)
+    if not graph or 'nodes' not in graph:
+        return jsonify({"error": "invalid graph data", "detail": f"got type={type(graph).__name__}, keys={list(graph.keys()) if isinstance(graph,dict) else 'N/A'}"}), 400
+    try:
+        import importlib.util
+        gen_path = str(BASE_DIR / "report" / "generator.py")
+        tpl_path = str(BASE_DIR / "report" / "template.html")
+        print(f"[report] Generating for {len(graph.get('nodes',[]))} nodes, gen={gen_path}, tpl={tpl_path}")
+
+        if not Path(gen_path).exists():
+            return jsonify({"error": f"generator.py not found at {gen_path}"}), 500
+        if not Path(tpl_path).exists():
+            return jsonify({"error": f"template.html not found at {tpl_path}"}), 500
+
+        spec = importlib.util.spec_from_file_location("report_gen", gen_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        print("[report] Running analysis engines...")
+        report_data = mod.generate_report_data(graph)
+        print(f"[report] Analysis complete, building HTML...")
+        html = mod.build_html(report_data, template_path=tpl_path)
+        print(f"[report] Done: {len(html)} bytes")
+
+        return Response(html, mimetype="text/html",
+                       headers={"Content-Disposition": f"attachment; filename={Path(graph.get('source','project')).name}-report.html"})
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        print(f"[report] ERROR: {e}\n{tb}")
+        return jsonify({"error": str(e), "trace": tb}), 500
+
+# ── Function documentation generator ─────────────────────────
+@app.route("/api/docs", methods=["POST"])
+def api_docs():
     graph = request.get_json()
     if not graph or 'nodes' not in graph:
         return jsonify({"error": "invalid graph data"}), 400
+    mode = request.args.get("mode", "single")
     try:
-        report_dir = BASE_DIR / "report"
-        sys.path.insert(0, str(report_dir))
-        from generator import generate_report_data, build_html
-        report_data = generate_report_data(graph)
-        html = build_html(report_data)
-        return Response(html, mimetype="text/html",
-                       headers={"Content-Disposition": f"attachment; filename={Path(graph.get('source','project')).name}-report.html"})
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("docs_gen", str(BASE_DIR / "docs" / "generator.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        if mode == "multi":
+            data = mod.build_multi(graph)
+            proj_name = Path(graph.get('source','project')).name
+            return Response(data, mimetype="application/zip",
+                           headers={"Content-Disposition": f"attachment; filename={proj_name}-docs.zip"})
+        else:
+            html = mod.build_single(graph)
+            proj_name = Path(graph.get('source','project')).name
+            return Response(html, mimetype="text/html",
+                           headers={"Content-Disposition": f"attachment; filename={proj_name}-docs.html"})
     except Exception as e:
         import traceback
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500

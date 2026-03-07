@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Callgraph Studio v1.6.0 — Deep Automated Test Suite
+Callgraph Studio v1.7.0 — Deep Automated Test Suite
 
 Comprehensive coverage of all features, endpoints, analysis engines,
 JS functions, CSS, HTML structure, and edge cases.
@@ -247,7 +247,7 @@ routes = [
     ("/api/cancel/", "POST"), ("/api/runs", "GET"),
     ("/api/index", "POST"), ("/api/source", "GET"),
     ("/api/report", "POST"), ("/favicon.ico", "GET"),
-    # v1.6.0
+    # v1.7.0
     ("/api/watch/start", "POST"), ("/api/watch/stop", "POST"),
 ]
 
@@ -798,8 +798,20 @@ for name, pattern in edge_checks.items():
 # ══════════════════════════════════════════════════════════════
 section("12. Version consistency")
 
-if "v1.6.0" in html:
-    ok("index.html: v1.6.0")
+# Check for browser native name collisions
+BROWSER_GLOBALS = {'scrollTo','scroll','scrollBy','focus','blur','open','close','print',
+    'stop','find','alert','confirm','prompt','fetch'}
+for fname, code in [('index.html', js), ('template.html', tpl_code if tpl_path.exists() else '')]:
+    if not code: continue
+    fns = set(re.findall(r'function\s+(\w+)\s*\(', code))
+    collisions = fns & BROWSER_GLOBALS
+    if collisions:
+        fail(f"{fname}: native name collisions: {collisions}")
+    else:
+        ok(f"{fname}: no native name collisions ({len(fns)} functions checked)")
+
+if "v1.7.0" in html:
+    ok("index.html: v1.7.0")
 else:
     fail("index.html: wrong version")
 
